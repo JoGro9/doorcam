@@ -5,6 +5,8 @@ from camera import CameraHandler
 import threading
 import time
 
+init_sensor()
+
 app = FastAPI()
 sensor = DoorSensor()
 camera = CameraHandler()
