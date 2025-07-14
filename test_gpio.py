@@ -1,13 +1,16 @@
-from gpiozero import Device
-from gpiozero.pins.pigpio import PiGPIOFactory
 from gpiozero import Button
+from gpiozero.pins.pigpio import PiGPIOFactory
 import time
 
-Device.pin_factory = PiGPIOFactory()
-
-button = Button(17)
+factory = PiGPIOFactory()
+button = Button(17, pin_factory=factory)
 
 print("Starte Test - bitte Taste drücken")
 
-button.wait_for_press()
-print("Taste gedrückt!")
+try:
+    button.wait_for_press()
+    print("Taste gedrückt!")
+    time.sleep(1)  # Warte, um 'held' Event auszulösen (falls genutzt)
+except KeyboardInterrupt:
+    print("Abbruch")
+
