@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from sensor import DoorSensor
+from sensor import DoorSensor, init_sensor
 from camera import CameraHandler
 import threading
 import time
