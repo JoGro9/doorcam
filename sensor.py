@@ -1,4 +1,8 @@
 from gpiozero import Button
+from gpiozero import Device
+from gpiozero.pins.rpigpio import RPiGPIOFactory
+
+Device.pin_factory = RPiGPIOFactory()
 
 DoorSensor = Button(17)  # BCM GPIO 17 (Pin 11)
 
