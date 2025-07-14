@@ -1,0 +1,26 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main  # Hauptbranch anpassen, falls anders
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: SSH to Raspberry Pi and update repo
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.PI_HOST }}
+        username: ${{ secrets.PI_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Verzeichnis wechseln oder klonen, wenn noch nicht da
+          if [ -d "/home/${{ secrets.PI_USER }}/doorcam" ]; then
+            cd /home/${{ secrets.PI_USER }}/doorcam
+            git pull
+          else
+            git clone git@github.com:JoGro9/doorcam.git /home/${{ secrets.PI_USER }}/doorcam
+          fi
