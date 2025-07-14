@@ -1,19 +1,18 @@
-from gpiozero import Device
-from gpiozero.pins.rpigpio import RPiGPIOFactory
+from gpiozero import Device, Button
+from gpiozero.pins.pigpio import PiGPIOFactory
 
-Device.pin_factory = RPiGPIOFactory()
+# Setze die Pin-Factory global auf PiGPIOFactory (benötigt pigpiod)
+Device.pin_factory = PiGPIOFactory()
 
-from gpiozero import Button
-
-DoorSensor = Button(17)  # BCM GPIO 17 (Pin 11)
-
-def init_sensor():
-    global DoorSensor
-    DoorSensor = Button(17)
-    DoorSensor.when_pressed = sensor_ausgeloest
-    print("Magnetsensor ist aktiv.")
+DoorSensor = None  # Globale Variable initialisieren
 
 def sensor_ausgeloest():
     print("🚪 Tür wurde geöffnet – Sensor ausgelöst!")
     # Später: Foto aufnehmen & speichern
 
+def init_sensor():
+    global DoorSensor
+    # Button mit der definierten Factory initialisieren
+    DoorSensor = Button(17)
+    DoorSensor.when_pressed = sensor_ausgeloest
+    print("Magnetsensor ist aktiv.")
