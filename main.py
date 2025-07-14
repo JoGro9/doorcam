@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from sensor import DoorSensor, init_sensor
+from sensor import init_sensor  # DoorSensor wird nicht direkt benötigt
 from camera import CameraHandler
 import threading
 import time
 
 app = FastAPI()
-sensor = None  # Wird erst nach init_sensor gesetzt
+sensor = None  # Wird später initialisiert
 camera = CameraHandler()
 
 def sensor_loop():
@@ -21,8 +21,8 @@ def sensor_loop():
 @app.on_event("startup")
 def startup_event():
     global sensor
-    init_sensor()      # Sensor initialisieren (setzt DoorSensor)
-    sensor = DoorSensor
+    sensor = init_sensor()  # Fix: sensor bekommt hier die Instanz
+    print("Sensor initialisiert:", sensor)
     threading.Thread(target=sensor_loop, daemon=True).start()
 
 @app.get("/")
