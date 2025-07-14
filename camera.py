@@ -8,16 +8,13 @@ class CameraHandler:
         os.makedirs(self.save_dir, exist_ok=True)
 
     def take_picture(self):
-         camera = PiCamera()
-         filename = self._generate_filename()
-         camera.capture(filename)
-         camera.close()
-
         filename = self._generate_filename()
-        print(f"Foto aufgenommen: {filename}")
-        # Simuliere Fotoaufnahme durch eine leere Datei:
-        with open(filename, "w") as f:
-            f.write("Simuliertes Foto\n")
+        camera = PiCamera()
+        try:
+            camera.capture(filename)
+            print(f"Foto aufgenommen: {filename}")
+        finally:
+            camera.close()
 
     def _generate_filename(self):
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
