@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI
 from sensor import DoorSensor, init_sensor
 from camera import CameraHandler
@@ -8,7 +7,7 @@ import time
 init_sensor()
 
 app = FastAPI()
-sensor = DoorSensor()
+sensor = DoorSensor  # bereits ein Button-Objekt
 camera = CameraHandler()
 
 @app.get("/")
@@ -17,12 +16,12 @@ def root():
 
 @app.get("/status")
 def status():
-    return {"sensor_triggered": sensor.is_triggered()}
+    return {"sensor_triggered": sensor.is_pressed}
 
 def sensor_loop():
     triggered_before = False
     while True:
-        triggered = sensor.is_triggered()
+        triggered = sensor.is_pressed
         if triggered and not triggered_before:
             print("⏰ Sensor ausgelöst – mache Foto...")
             camera.take_picture()
@@ -30,3 +29,4 @@ def sensor_loop():
         time.sleep(1)
 
 threading.Thread(target=sensor_loop, daemon=True).start()
+
