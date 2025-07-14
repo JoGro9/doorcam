@@ -4,19 +4,9 @@ from camera import CameraHandler
 import threading
 import time
 
-init_sensor()
-
 app = FastAPI()
-sensor = DoorSensor  
+sensor = None  # Wird erst nach init_sensor gesetzt
 camera = CameraHandler()
-
-@app.get("/")
-def root():
-    return {"message": "DoorCam läuft"}
-
-@app.get("/status")
-def status():
-    return {"sensor_triggered": sensor.is_pressed}
 
 def sensor_loop():
     triggered_before = False
@@ -28,5 +18,17 @@ def sensor_loop():
         triggered_before = triggered
         time.sleep(1)
 
-threading.Thread(target=sensor_loop, daemon=True).start()
+@app.on_event("startup")
+def startup_event():
+    global sensor
+    init_sensor()      # Sensor initialisieren (setzt DoorSensor)
+    sensor = DoorSensor
+    threading.Thread(target=sensor_loop, daemon=True).start()
 
+@app.get("/")
+def root():
+    return {"message": "DoorCam läuft"}
+
+@app.get("/status")
+def status():
+    return {"sensor_triggered": sensor.is_pressed}
