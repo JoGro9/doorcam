@@ -10,4 +10,4 @@ def startup_event():
 
 @app.get("/")
 def read_root():
-    return {"message": "Doorcam läuft"}
+    return {"message": "Doorcam läuft"} 
