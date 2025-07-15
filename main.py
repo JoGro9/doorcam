@@ -197,7 +197,7 @@ def format_date_from_filename(filename: str) -> str:
         return "Unbekanntes Datum"
 
 @app.get("/gallery", response_class=HTMLResponse)
-def gallery(request: Request, _: bool = Depends(check_credentials)):
+def gallery(_: bool = Depends(check_credentials)):
     jetzt = datetime.now()
     drei_tage_zurueck = jetzt - timedelta(days=3)
 
