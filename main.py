@@ -105,19 +105,20 @@ def mache_fotos_und_erkenne_gesicht():
 
         time.sleep(intervall)
 
-    if not erkannte_bilder and alle_bilder:
-        alle_bilder.sort(key=lambda x: x[1], reverse=True)
-        bestes_bild, best_conf = alle_bilder[0]
-        print(f"Kein Gesicht erkannt. Bild mit höchster Confidence {best_conf:.2f}: {bestes_bild}")
-        erkannte_bilder.append((bestes_bild, best_conf))
-        for bild, _ in alle_bilder[1:]:
+    if erkannte_bilder:
+        # Nur das erkannte Bild behalten, Rest löschen
+        bestes_bild = erkannte_bilder[0][0]
+        for bild, _ in alle_bilder:
+            if bild != bestes_bild and os.path.exists(bild):
+                os.remove(bild)
+        print(f"Gespeichertes Bild mit erkanntem Gesicht: {bestes_bild}")
+    else:
+        # Kein Gesicht erkannt – alle Bilder löschen
+        for bild, _ in alle_bilder:
             if os.path.exists(bild):
                 os.remove(bild)
-    else:
-        erkannte_set = set(b[0] for b in erkannte_bilder)
-        for bild, _ in alle_bilder:
-            if bild not in erkannte_set and os.path.exists(bild):
-                os.remove(bild)
+        print("Kein Gesicht erkannt – alle Bilder gelöscht.")
+
 
 def sensor_event():
     global letzte_ausloesung, tuer_offen, entprell_aktiv
