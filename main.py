@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from gpiozero import Device, Button
 from gpiozero.pins.pigpio import PiGPIOFactory
 from camera import CameraHandler
@@ -12,37 +11,28 @@ from datetime import datetime, timedelta
 
 app = FastAPI()
 
+# Setup für GPIO
 Device.pin_factory = PiGPIOFactory()
+
+# Kamera initialisieren
 camera = CameraHandler()
 
+# DNN-Gesichtserkennung vorbereiten
 dnn_model_path = "res10_300x300_ssd_iter_140000.caffemodel"
 dnn_config_path = "deploy.prototxt"
 net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 
+# Foto-Speicherort
 PHOTO_DIR = "temp"
 if not os.path.exists(PHOTO_DIR):
     os.makedirs(PHOTO_DIR)
 
-sensor = None
+sensor = None  # Wird beim Startup gesetzt
 
-ENTPRELLZEIT = 2  # Sekunden Mindestabstand
+# Entprellung global
 letzte_ausloesung = 0
-tuer_offen = None  # Status: True=geschlossen, False=offen, None=unbekannt
-entprell_aktiv = False  # Flag, um Entprell-Log nur einmal zu zeigen
-
-# Basic Auth Setup
-security = HTTPBasic()
-PASSWORD = "dein_geheimes_passwort"  # <-- Hier dein Passwort eintragen
-
-def check_password(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_password = PASSWORD
-    if credentials.password != correct_password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falsches Passwort",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return True
+ENTPRELLZEIT = 2
+MIN_TRIGGER_ABSTAND = 1.0
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -95,46 +85,29 @@ def mache_fotos_und_erkenne_gesicht():
             if bild not in erkannte_dateien and os.path.exists(bild):
                 os.remove(bild)
 
-def sensor_event():
-    global letzte_ausloesung, tuer_offen, entprell_aktiv
+def sensor_ausgeloest():
+    global letzte_ausloesung
     jetzt = time.time()
 
     if jetzt - letzte_ausloesung < ENTPRELLZEIT:
-        if not entprell_aktiv:
-            print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
-            entprell_aktiv = True
-        return
-    entprell_aktiv = False
-
-    aktueller_status = sensor.is_pressed  # True = Tür geschlossen, False = offen
-
-    if tuer_offen is None:
-        tuer_offen = aktueller_status  # initialen Zustand setzen
-        print(f"Initialer Türstatus gesetzt: {'geschlossen' if tuer_offen else 'offen'}")
-        # WICHTIG: Hier direkt returnen, damit beim ersten Event keine Aktion ausgelöst wird
+        print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
         return
 
-    if aktueller_status == tuer_offen:
-        # Kein Statuswechsel, ignorieren
-        print("Kein Statuswechsel der Tür, ignoriere.")
+    if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
+        print("Sensor zu schnell erneut ausgelöst - vermuteter Fehltrigger.")
         return
 
     letzte_ausloesung = jetzt
-    tuer_offen = aktueller_status
+    print("Tür wurde geschlossen – starte Gesichtserkennung")
+    mache_fotos_und_erkenne_gesicht()
 
-    if not tuer_offen:
-        # Tür offen (Sensor offen)
-        print("Tür wurde geöffnet – starte Gesichtserkennung")
-        mache_fotos_und_erkenne_gesicht()
-    else:
-        # Tür geschlossen
-        print("Tür wurde geschlossen – keine Aktion")
+def sensor_offen():
+    print("Tür wurde geöffnet.")
 
 def init_sensor():
-    global sensor
     sensor = Button(17, pull_up=True)
-    sensor.when_pressed = sensor_event    # Tür schließt → keine Fotos (wird im Event geprüft)
-    sensor.when_released = sensor_event   # Tür öffnet → Fotos machen
+    sensor.when_pressed = sensor_ausgeloest
+    sensor.when_released = sensor_offen
     print("Magnetsensor ist aktiv.")
     return sensor
 
@@ -144,11 +117,8 @@ def sensor_loop():
 
 @app.on_event("startup")
 def startup_event():
-    global sensor, tuer_offen
+    global sensor
     sensor = init_sensor()
-    # Initialen Türstatus direkt beim Start setzen (optional)
-    tuer_offen = sensor.is_pressed
-    print(f"Initialer Türstatus beim Start: {'geschlossen' if tuer_offen else 'offen'}")
     threading.Thread(target=sensor_loop, daemon=True).start()
     print("System gestartet.")
 
@@ -162,6 +132,20 @@ def get_photo(filename: str):
     if os.path.exists(pfad):
         return FileResponse(pfad, media_type="image/jpeg")
     return {"error": "Foto nicht gefunden"}
+
+@app.post("/gallery/clear")
+def clear_gallery(request: Request):
+    gelöscht = 0
+    for dateiname in os.listdir(PHOTO_DIR):
+        if dateiname.lower().endswith(".jpg"):
+            try:
+                pfad = os.path.join(PHOTO_DIR, dateiname)
+                os.remove(pfad)
+                gelöscht += 1
+            except Exception as e:
+                print(f"Fehler beim Löschen von {dateiname}: {e}")
+    print(f"{gelöscht} Bilder gelöscht.")
+    return RedirectResponse(url="/gallery", status_code=303)
 
 def format_date_from_filename(filename: str) -> str:
     try:
@@ -269,11 +253,27 @@ def gallery():
                 margin-top: 4px;
                 font-style: italic;
             }}
+            .delete-button {{
+                background-color: #e53935;
+                color: white;
+                font-weight: bold;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 8px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-bottom: 20px;
+            }}
         </style>
     </head>
     <body>
         <h1>Türkamera Galerie</h1>
         <div id="datetime">{datum} | <span id="uhrzeit">{uhrzeit}</span></div>
+
+        <form method="post" action="/gallery/clear" onsubmit="return confirm('Wirklich alle Bilder löschen?');">
+            <button type="submit" class="delete-button">📸 Galerie löschen</button>
+        </form>
+
         <div class="gallery">
     """
 
@@ -291,25 +291,16 @@ def gallery():
     html += """
         </div>
         <script>
-            function updateTime() {
-                const uhrzeitElem = document.getElementById('uhrzeit');
-                const now = new Date();
-                uhrzeitElem.textContent = now.toLocaleTimeString('de-DE');
-            }
-            setInterval(updateTime, 1000);
+        function updateTime() {
+            const uhrzeitElem = document.getElementById('uhrzeit');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('de-DE');
+            uhrzeitElem.textContent = timeString;
+        }
+        setInterval(updateTime, 1000);
         </script>
     </body>
     </html>
     """
     return html
 
-@app.delete("/gallery/clear")
-def clear_gallery(auth: bool = Depends(check_password)):
-    try:
-        for filename in os.listdir(PHOTO_DIR):
-            if filename.lower().endswith(".jpg"):
-                pfad = os.path.join(PHOTO_DIR, filename)
-                os.remove(pfad)
-        return {"message": "Galerie wurde geleert."}
-    except Exception as e:
-        return {"error": f"Fehler beim Leeren der Galerie: {e}"}
