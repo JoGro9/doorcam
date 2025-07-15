@@ -13,7 +13,8 @@ Device.pin_factory = PiGPIOFactory()
 camera = CameraHandler()
 
 # Gesichtserkennung vorbereiten
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
+
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
