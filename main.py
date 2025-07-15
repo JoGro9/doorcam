@@ -18,7 +18,7 @@ Device.pin_factory = PiGPIOFactory()
 camera = CameraHandler()
 
 # Gesichtserkennung vorbereiten-*-----
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
 
 # Foto-Speicherort
 PHOTO_DIR = "temp"
