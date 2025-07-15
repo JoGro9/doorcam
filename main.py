@@ -30,7 +30,7 @@ dnn_config_path = "deploy.prototxt"
 net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 
 templates = Jinja2Templates(directory="templates/gallery.html")
-
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 PHOTO_DIR = "temp"
 if not os.path.exists(PHOTO_DIR):
