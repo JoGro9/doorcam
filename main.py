@@ -17,10 +17,8 @@ Device.pin_factory = PiGPIOFactory()
 # Kamera initialisieren
 camera = CameraHandler()
 
-# Deep Learning Gesichtserkennung (statt Haarcascade)
-dnn_proto = "deploy.prototxt"
-dnn_model = "res10_300x300_ssd_iter_140000.caffemodel"
-net = cv2.dnn.readNetFromCaffe(dnn_proto, dnn_model)
+# Gesichtserkennung vorbereiten
+face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
 
 # Foto-Speicherort
 PHOTO_DIR = "temp"
@@ -48,20 +46,20 @@ def mache_fotos_und_erkenne_gesicht():
             print(f"Konnte Bild nicht laden: {bild_pfad}")
             continue
 
-        (h, w) = img.shape[:2]
-        blob = cv2.dnn.blobFromImage(cv2.resize(img, (300, 300)), 1.0,
-                                     (300, 300), (104.0, 177.0, 123.0))
-        net.setInput(blob)
-        detections = net.forward()
+        graustufen = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gesichter = face_cascade.detectMultiScale(
+            graustufen,
+            scaleFactor=1.1,
+            minNeighbors=6,
+            minSize=(60, 60),
+            maxSize=(300, 300)
+        )
 
-        for j in range(detections.shape[2]):
-            confidence = detections[0, 0, j, 2]
-            if confidence > 0.6:
-                print(f"Gesicht erkannt auf Foto {bild_pfad} mit Vertrauen {confidence:.2f}")
-                gesicht_gefunden = True
-                break
 
-        if gesicht_gefunden:
+
+        if len(gesichter) > 0:
+            print(f"Gesicht erkannt auf Foto {bild_pfad}")
+            gesicht_gefunden = True
             break
         else:
             os.remove(bild_pfad)
@@ -101,6 +99,8 @@ def startup_event():
 def root():
     return {"message": "DoorCam läuft"}
 
+
+# 📸 Galerie-Endpunkte:
 
 @app.get("/photo/{filename}")
 def get_photo(filename: str):
