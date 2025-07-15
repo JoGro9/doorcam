@@ -29,16 +29,14 @@ if not os.path.exists(PHOTO_DIR):
 
 sensor = None  # Wird beim Startup gesetzt
 
-# Liste für erkannte Gesichter mit Confidence (filename, confidence)
+# Listen für Bilder (filename, confidence)
 erkannte_bilder = []
-# Liste für alle gemachten Bilder (filename, confidence)
 alle_bilder = []
 
 # Entprellung global
 letzte_ausloesung = 0
-ENTPRELLZEIT = 2  # Sekunden, Mindestabstand zwischen Triggern
-MIN_TRIGGER_ABSTAND = 1.0  # Sek. zwischen Auf/Zu-Events, um Fehltrigger zu vermeiden
-
+ENTPRELLZEIT = 2  # Sekunden Mindestabstand
+MIN_TRIGGER_ABSTAND = 1.0  # Sekunden zwischen Tür-Events
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -47,14 +45,12 @@ def mache_fotos_und_erkenne_gesicht():
     erkannte_bilder.clear()
     alle_bilder.clear()
 
-    for i in range(max_fotos):
+    for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         bild_pfad = os.path.join(PHOTO_DIR, f"photo_{timestamp}.jpg")
 
-        # Foto aufnehmen
         camera.take_picture(bild_pfad)
 
-        # Bild laden
         img = cv2.imread(bild_pfad)
         if img is None:
             print(f"Konnte Bild nicht laden: {bild_pfad}")
@@ -78,47 +74,39 @@ def mache_fotos_und_erkenne_gesicht():
             print(f"Gesicht erkannt auf Foto {bild_pfad} (Confidence: {max_confidence:.2f})")
             erkannte_bilder.append((bild_pfad, max_confidence))
             gesicht_gefunden = True
-            # Hier abbrechen, da Gesicht gefunden
             break
 
         time.sleep(intervall)
 
-    # Wenn kein Gesicht erkannt wurde, suche Bild mit höchster Confidence
     if not gesicht_gefunden and alle_bilder:
-        alle_bilder.sort(key=lambda x: x[1], reverse=True)  # absteigend sortieren
+        alle_bilder.sort(key=lambda x: x[1], reverse=True)
         bestes_bild, best_conf = alle_bilder[0]
-        print(f"Kein Gesicht erkannt. Speichere Bild mit höchster Confidence {best_conf:.2f}: {bestes_bild}")
-        # Alle Bilder außer bestes Bild löschen
+        print(f"Kein Gesicht erkannt. Bild mit höchster Confidence {best_conf:.2f}: {bestes_bild}")
         for bild, conf in alle_bilder[1:]:
             if os.path.exists(bild):
                 os.remove(bild)
         erkannte_bilder.append((bestes_bild, best_conf))
     else:
-        # Wenn Gesicht erkannt, lösche alle Bilder außer erkannte
         for bild, conf in alle_bilder:
             if (bild, conf) not in erkannte_bilder:
                 if os.path.exists(bild):
                     os.remove(bild)
 
-
 def sensor_ausgeloest():
     global letzte_ausloesung
     jetzt = time.time()
 
-    # Wenn letztes Event zu kurz her ist, ignorieren (Entprellung)
     if jetzt - letzte_ausloesung < ENTPRELLZEIT:
         print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
         return
 
-    # Wenn letzte Auslösung innerhalb MIN_TRIGGER_ABSTAND Sekunden war, könnte es ein Schließ-Fehltrigger sein - ignorieren
     if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
-        print("Sensor ausgelöst zu schnell hintereinander - vermuteter Fehltrigger, ignoriere.")
+        print("Sensor zu schnell erneut ausgelöst - vermuteter Fehltrigger.")
         return
 
     letzte_ausloesung = jetzt
     print("Tür wurde geöffnet – Sensor ausgelöst.")
     mache_fotos_und_erkenne_gesicht()
-
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
@@ -126,11 +114,9 @@ def init_sensor():
     print("Magnetsensor ist aktiv.")
     return sensor
 
-
 def sensor_loop():
     while True:
         time.sleep(1)
-
 
 @app.on_event("startup")
 def startup_event():
@@ -139,11 +125,9 @@ def startup_event():
     threading.Thread(target=sensor_loop, daemon=True).start()
     print("System gestartet.")
 
-
 @app.get("/")
 def root():
     return {"message": "DoorCam läuft"}
-
 
 @app.get("/photo/{filename}")
 def get_photo(filename: str):
@@ -152,26 +136,19 @@ def get_photo(filename: str):
         return FileResponse(pfad, media_type="image/jpeg")
     return {"error": "Foto nicht gefunden"}
 
-
 def format_date_from_filename(filename: str) -> str:
-    """
-    Extrahiert Datum und Uhrzeit aus Dateiname photo_YYYYMMDD_HHMMSS_xxxxxx.jpg
-    und formatiert es lesbar.
-    """
     try:
         basename = os.path.basename(filename)
-        # photo_20250715_143022_123456.jpg
         parts = basename.split('_')
         if len(parts) < 3:
             return "Unbekanntes Datum"
-        date_part = parts[1]  # YYYYMMDD
-        time_part = parts[2]  # HHMMSS
+        date_part = parts[1]
+        time_part = parts[2]
         dt = datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
         return dt.strftime("%A, %d.%m.%Y %H:%M:%S")
     except Exception as e:
         print(f"Fehler beim Parsen des Datums: {e}")
         return "Unbekanntes Datum"
-
 
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
@@ -271,4 +248,14 @@ def gallery():
         <script>
         // Uhrzeit live aktualisieren
         function updateTime() {
-           
+            const uhrzeitElem = document.getElementById('uhrzeit');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('de-DE');
+            uhrzeitElem.textContent = timeString;
+        }
+        setInterval(updateTime, 1000);
+        </script>
+    </body>
+    </html>
+    """
+    return html
