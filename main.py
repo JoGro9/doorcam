@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from gpiozero import Device, Button
 from gpiozero.pins.pigpio import PiGPIOFactory
 from camera import CameraHandler
@@ -28,6 +29,20 @@ ENTPRELLZEIT = 2  # Sekunden Mindestabstand
 letzte_ausloesung = 0
 tuer_offen = None  # Status: True=geschlossen, False=offen, None=unbekannt
 entprell_aktiv = False  # Flag, um Entprell-Log nur einmal zu zeigen
+
+# Basic Auth Setup
+security = HTTPBasic()
+PASSWORD = "dein_geheimes_passwort"  # <-- Hier dein Passwort eintragen
+
+def check_password(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_password = PASSWORD
+    if credentials.password != correct_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Falsches Passwort",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return True
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -282,3 +297,14 @@ def gallery():
     </html>
     """
     return html
+
+@app.delete("/gallery/clear")
+def clear_gallery(auth: bool = Depends(check_password)):
+    try:
+        for filename in os.listdir(PHOTO_DIR):
+            if filename.lower().endswith(".jpg"):
+                pfad = os.path.join(PHOTO_DIR, filename)
+                os.remove(pfad)
+        return {"message": "Galerie wurde geleert."}
+    except Exception as e:
+        return {"error": f"Fehler beim Leeren der Galerie: {e}"}
