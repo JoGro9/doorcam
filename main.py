@@ -7,7 +7,7 @@ import threading
 import cv2
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
@@ -152,11 +152,32 @@ def format_date_from_filename(filename: str) -> str:
 
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
-    bilder = [bild[0] for bild in erkannte_bilder if os.path.exists(bild[0])]
+    jetzt = datetime.now()
+    drei_tage_zurueck = jetzt - timedelta(days=3)
 
-    now = datetime.now()
-    datum = now.strftime("%A, %d. %B %Y")
-    uhrzeit = now.strftime("%H:%M:%S")
+    bilder = []
+    for dateiname in os.listdir(PHOTO_DIR):
+        if not dateiname.lower().endswith(".jpg"):
+            continue
+        try:
+            # Datum aus Dateiname extrahieren (photo_YYYYMMDD_HHMMSS_xxxxxx.jpg)
+            parts = dateiname.split('_')
+            if len(parts) < 3:
+                continue
+            date_part = parts[1]  # YYYYMMDD
+            time_part = parts[2]  # HHMMSS
+            dt = datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
+            if dt >= drei_tage_zurueck:
+                bilder.append((os.path.join(PHOTO_DIR, dateiname), dt))
+        except Exception as e:
+            print(f"Fehler beim Parsen des Datums von {dateiname}: {e}")
+            continue
+
+    # Sortiere Bilder nach Datum absteigend (neueste zuerst)
+    bilder.sort(key=lambda x: x[1], reverse=True)
+
+    datum = jetzt.strftime("%A, %d. %B %Y")
+    uhrzeit = jetzt.strftime("%H:%M:%S")
 
     html = f"""
     <!DOCTYPE html>
@@ -231,7 +252,7 @@ def gallery():
         <div class="gallery">
     """
 
-    for bild in bilder:
+    for bild, _ in bilder:
         aufnahmezeit = format_date_from_filename(bild)
         dateiname = os.path.basename(bild)
         html += f"""
