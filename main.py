@@ -12,6 +12,9 @@ import cv2
 import time
 import os
 from datetime import datetime, timedelta
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+
 
 app = FastAPI()
 security = HTTPBasic()
@@ -22,6 +25,9 @@ camera = CameraHandler()
 dnn_model_path = "res10_300x300_ssd_iter_140000.caffemodel"
 dnn_config_path = "deploy.prototxt"
 net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
+
+templates = Jinja2Templates(directory="templates/gallery.html")
+
 
 PHOTO_DIR = "temp"
 if not os.path.exists(PHOTO_DIR):
