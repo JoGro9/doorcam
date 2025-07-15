@@ -3,7 +3,8 @@ import os
 import time
 from datetime import datetime
 
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
+
 
 def erkenne_gesicht_und_speichere_foto(camera):
     max_fotos = 5
