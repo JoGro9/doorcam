@@ -26,7 +26,8 @@ sensor = None
 
 ENTPRELLZEIT = 2  # Sekunden Mindestabstand
 letzte_ausloesung = 0
-tuer_offen = None  # Status: True=offen, False=geschlossen, None=unbekannt
+tuer_offen = None  # Status: True=geschlossen, False=offen, None=unbekannt
+entprell_aktiv = False  # Flag, um Entprell-Log nur einmal zu zeigen
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -80,29 +81,32 @@ def mache_fotos_und_erkenne_gesicht():
                 os.remove(bild)
 
 def sensor_event():
-    global letzte_ausloesung, tuer_offen
+    global letzte_ausloesung, tuer_offen, entprell_aktiv
     jetzt = time.time()
 
     if jetzt - letzte_ausloesung < ENTPRELLZEIT:
-        print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
+        if not entprell_aktiv:
+            print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
+            entprell_aktiv = True
         return
+    entprell_aktiv = False
 
     aktueller_status = sensor.is_pressed  # True = Tür geschlossen, False = offen
 
     if tuer_offen is None:
-        tuer_offen = not aktueller_status  # initialen Zustand setzen
-        print(f"Initialer Türstatus gesetzt: {'offen' if tuer_offen else 'geschlossen'}")
+        tuer_offen = aktueller_status  # initialen Zustand setzen
+        print(f"Initialer Türstatus gesetzt: {'geschlossen' if tuer_offen else 'offen'}")
 
     if aktueller_status == tuer_offen:
         # Kein Statuswechsel, ignorieren
-        print("Kein Statuswechsel der Tür, Ignoriere.")
+        print("Kein Statuswechsel der Tür, ignoriere.")
         return
 
     letzte_ausloesung = jetzt
     tuer_offen = aktueller_status
 
     if not tuer_offen:
-        # Tür ist jetzt offen (Sensor offen)
+        # Tür offen (Sensor offen)
         print("Tür wurde geöffnet – starte Gesichtserkennung")
         mache_fotos_und_erkenne_gesicht()
     else:
@@ -188,7 +192,63 @@ def gallery():
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Türkamera Galerie</title>
         <style>
-            /* ... Styles bleiben unverändert ... */
+            @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Text:wght@400;600&display=swap');
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Oxygen,
+                    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+                background: #f9f9f9;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }}
+            h1 {{
+                font-weight: 600;
+                color: #111;
+                margin-bottom: 5px;
+            }}
+            #datetime {{
+                color: #666;
+                margin-bottom: 20px;
+                font-size: 1.1em;
+                font-weight: 400;
+            }}
+            .gallery {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                justify-content: flex-start;
+            }}
+            .bild-container {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                padding: 10px;
+                max-width: 320px;
+                text-align: center;
+                transition: box-shadow 0.3s ease;
+            }}
+            .bild-container:hover {{
+                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            }}
+            img {{
+                max-width: 100%;
+                border-radius: 8px;
+                user-select: none;
+            }}
+            small {{
+                display: block;
+                margin-top: 8px;
+                color: #888;
+                font-size: 0.85em;
+                font-family: monospace;
+                word-break: break-word;
+            }}
+            .aufnahmezeit {{
+                font-size: 0.9em;
+                color: #555;
+                margin-top: 4px;
+                font-style: italic;
+            }}
         </style>
     </head>
     <body>
