@@ -18,8 +18,8 @@ Device.pin_factory = PiGPIOFactory()
 camera = CameraHandler()
 
 # DNN-Modell für Gesichtserkennung laden
-prototxt_path = "models/deploy.prototxt"
-model_path = "models/res10_300x300_ssd_iter_140000.caffemodel"
+prototxt_path = "deploy.prototxt"
+model_path = "res10_300x300_ssd_iter_140000.caffemodel"
 net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
 
 # Foto-Speicherort
