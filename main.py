@@ -111,6 +111,8 @@ def sensor_event():
     if tuer_offen is None:
         tuer_offen = aktueller_status  # initialen Zustand setzen
         print(f"Initialer Türstatus gesetzt: {'geschlossen' if tuer_offen else 'offen'}")
+        # WICHTIG: Hier direkt returnen, damit beim ersten Event keine Aktion ausgelöst wird
+        return
 
     if aktueller_status == tuer_offen:
         # Kein Statuswechsel, ignorieren
@@ -142,8 +144,11 @@ def sensor_loop():
 
 @app.on_event("startup")
 def startup_event():
-    global sensor
+    global sensor, tuer_offen
     sensor = init_sensor()
+    # Initialen Türstatus direkt beim Start setzen (optional)
+    tuer_offen = sensor.is_pressed
+    print(f"Initialer Türstatus beim Start: {'geschlossen' if tuer_offen else 'offen'}")
     threading.Thread(target=sensor_loop, daemon=True).start()
     print("System gestartet.")
 
