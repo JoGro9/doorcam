@@ -86,20 +86,8 @@ def mache_fotos_und_erkenne_gesicht():
                 os.remove(bild)
 
 def sensor_ausgeloest():
-    global letzte_ausloesung
-    jetzt = time.time()
-
-    if jetzt - letzte_ausloesung < ENTPRELLZEIT:
-        print("Sensor ausgelöst (geschlossen), aber Entprellzeit aktiv - Ignoriere.")
-        return
-
-    if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
-        print("Sensor zu schnell erneut ausgelöst (geschlossen) - vermuteter Fehltrigger.")
-        return
-
-    letzte_ausloesung = jetzt
-    print("Tür wurde geschlossen – starte Gesichtserkennung")
-    mache_fotos_und_erkenne_gesicht()
+    # Tür wurde geschlossen – keine Aktion gewünscht
+    print("Tür wurde geschlossen – keine Fotos werden gemacht.")
 
 def sensor_offen():
     global letzte_ausloesung
