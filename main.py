@@ -35,8 +35,9 @@ erkannte_bilder = []
 alle_bilder = []
 
 # Entprellung global
-letzte_ausloesung = None
-ENTPRELLZEIT = 2  # Sekunden
+letzte_ausloesung = 0
+ENTPRELLZEIT = 2  # Sekunden, Mindestabstand zwischen Triggern
+MIN_TRIGGER_ABSTAND = 1.0  # Sek. zwischen Auf/Zu-Events, um Fehltrigger zu vermeiden
 
 
 def mache_fotos_und_erkenne_gesicht():
@@ -103,12 +104,20 @@ def mache_fotos_und_erkenne_gesicht():
 def sensor_ausgeloest():
     global letzte_ausloesung
     jetzt = time.time()
-    if letzte_ausloesung is None or (jetzt - letzte_ausloesung) > ENTPRELLZEIT:
-        letzte_ausloesung = jetzt
-        print("Tür wurde geöffnet – Sensor ausgelöst.")
-        mache_fotos_und_erkenne_gesicht()
-    else:
+
+    # Wenn letztes Event zu kurz her ist, ignorieren (Entprellung)
+    if jetzt - letzte_ausloesung < ENTPRELLZEIT:
         print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
+        return
+
+    # Wenn letzte Auslösung innerhalb MIN_TRIGGER_ABSTAND Sekunden war, könnte es ein Schließ-Fehltrigger sein - ignorieren
+    if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
+        print("Sensor ausgelöst zu schnell hintereinander - vermuteter Fehltrigger, ignoriere.")
+        return
+
+    letzte_ausloesung = jetzt
+    print("Tür wurde geöffnet – Sensor ausgelöst.")
+    mache_fotos_und_erkenne_gesicht()
 
 
 def init_sensor():
@@ -144,9 +153,29 @@ def get_photo(filename: str):
     return {"error": "Foto nicht gefunden"}
 
 
+def format_date_from_filename(filename: str) -> str:
+    """
+    Extrahiert Datum und Uhrzeit aus Dateiname photo_YYYYMMDD_HHMMSS_xxxxxx.jpg
+    und formatiert es lesbar.
+    """
+    try:
+        basename = os.path.basename(filename)
+        # photo_20250715_143022_123456.jpg
+        parts = basename.split('_')
+        if len(parts) < 3:
+            return "Unbekanntes Datum"
+        date_part = parts[1]  # YYYYMMDD
+        time_part = parts[2]  # HHMMSS
+        dt = datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
+        return dt.strftime("%A, %d.%m.%Y %H:%M:%S")
+    except Exception as e:
+        print(f"Fehler beim Parsen des Datums: {e}")
+        return "Unbekanntes Datum"
+
+
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
-    bilder = [os.path.basename(bild[0]) for bild in erkannte_bilder if os.path.exists(bild[0])]
+    bilder = [bild[0] for bild in erkannte_bilder if os.path.exists(bild[0])]
 
     now = datetime.now()
     datum = now.strftime("%A, %d. %B %Y")
@@ -211,6 +240,12 @@ def gallery():
                 font-family: monospace;
                 word-break: break-word;
             }}
+            .aufnahmezeit {{
+                font-size: 0.9em;
+                color: #555;
+                margin-top: 4px;
+                font-style: italic;
+            }}
         </style>
     </head>
     <body>
@@ -220,28 +255,20 @@ def gallery():
     """
 
     for bild in bilder:
+        aufnahmezeit = format_date_from_filename(bild)
+        dateiname = os.path.basename(bild)
         html += f"""
             <div class="bild-container">
-                <img src='/photo/{bild}' alt='Türkamera Bild'/>
-                <small>{bild}</small>
+                <img src='/photo/{dateiname}' alt='Türkamera Bild'/>
+                <small>{dateiname}</small>
+                <div class="aufnahmezeit">{aufnahmezeit}</div>
             </div>
         """
+
     html += """
         </div>
 
         <script>
         // Uhrzeit live aktualisieren
         function updateTime() {
-            const uhrzeitSpan = document.getElementById('uhrzeit');
-            const jetzt = new Date();
-            const stunden = String(jetzt.getHours()).padStart(2, '0');
-            const minuten = String(jetzt.getMinutes()).padStart(2, '0');
-            const sekunden = String(jetzt.getSeconds()).padStart(2, '0');
-            uhrzeitSpan.textContent = `${stunden}:${minuten}:${sekunden}`;
-        }
-        setInterval(updateTime, 1000);
-        </script>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html)
+           
