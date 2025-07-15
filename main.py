@@ -33,7 +33,8 @@ event_lock = threading.Lock()  # Neu: Für gleichzeitige Events
 
 # Basic Auth Setup
 security = HTTPBasic()
-PASSWORD = "dein_geheimes_passwort"
+USERNAME = "admin"
+PASSWORD = "home123"
 
 def check_password(credentials: HTTPBasicCredentials = Depends(security)):
     if credentials.password != PASSWORD:
@@ -172,7 +173,7 @@ def format_date_from_filename(filename: str) -> str:
         return "Unbekanntes Datum"
 
 @app.get("/gallery", response_class=HTMLResponse)
-def gallery():
+def gallery(_: bool = Depends(check_credentials)):
     jetzt = datetime.now()
     drei_tage_zurueck = jetzt - timedelta(days=3)
 
