@@ -17,10 +17,10 @@ Device.pin_factory = PiGPIOFactory()
 # Kamera initialisieren
 camera = CameraHandler()
 
-# DNN-Gesichtserkennung vorbereiten
-dnn_model_path = "res10_300x300_ssd_iter_140000.caffemodel"
-dnn_config_path = "deploy.prototxt"
-net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
+# DNN-Modell für Gesichtserkennung laden
+prototxt_path = "models/deploy.prototxt"
+model_path = "models/res10_300x300_ssd_iter_140000.caffemodel"
+net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
 
 # Foto-Speicherort
 PHOTO_DIR = "temp"
@@ -33,7 +33,8 @@ sensor = None  # Wird beim Startup gesetzt
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
     intervall = 0.5
-    gesicht_gefunden = False
+    best_confidence = 0.0
+    best_path = None
 
     for i in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
@@ -54,32 +55,42 @@ def mache_fotos_und_erkenne_gesicht():
         net.setInput(blob)
         detections = net.forward()
 
-        for i in range(detections.shape[2]):
-            confidence = detections[0, 0, i, 2]
+        found = False
+        for j in range(detections.shape[2]):
+            confidence = detections[0, 0, j, 2]
             if confidence > 0.5:
-                print(f"Gesicht erkannt auf Foto {bild_pfad} (Confidence: {confidence:.2f})")
-                gesicht_gefunden = True
+                print(f"✅ Gesicht erkannt mit {confidence:.2f} auf {bild_pfad}")
+                found = True
                 break
+            elif confidence > best_confidence:
+                best_confidence = confidence
+                best_path = bild_pfad
 
-        if gesicht_gefunden:
+        if found:
             break
         else:
-            os.remove(bild_pfad)
+            time.sleep(intervall)
 
-        time.sleep(intervall)
-
-    if not gesicht_gefunden:
-        print("Kein Gesicht erkannt.")
+    if not found:
+        if best_path:
+            print(f"⚠️ Kein klares Gesicht erkannt, bestes war {best_confidence:.2f}, Bild behalten: {best_path}")
+        else:
+            print("❌ Kein Gesicht erkannt und kein brauchbares Bild.")
 
 
 def sensor_ausgeloest():
-    print("Tür wurde geöffnet – Sensor ausgelöst.")
+    print("Tür geöffnet erkannt.")
     mache_fotos_und_erkenne_gesicht()
 
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
-    sensor.when_released = sensor_ausgeloest
+
+    def check_status():
+        if not sensor.is_pressed:
+            sensor_ausgeloest()
+
+    sensor.when_released = check_status  # Reagiere nur beim Öffnen
     print("Magnetsensor ist aktiv.")
     return sensor
 
