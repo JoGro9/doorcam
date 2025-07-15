@@ -7,9 +7,13 @@ Device.pin_factory = PiGPIOFactory()
 def sensor_ausgeloest():
     print("Tür wurde geöffnet – Sensor ausgelöst.")
 
+def sensor_geschlossen():
+    print("Tür wurde geschlossen – Sensor verbunden.")
+
 def init_sensor():
-    # pull_up=True: Pin ist HIGH, wenn Sensorkontakt offen ist (Tür offen)-
+    # pull_up=True: Pin ist HIGH, wenn Sensorkontakt offen ist (Tür offen)
     sensor = Button(17, pull_up=True)
-    sensor.when_released = sensor_ausgeloest  # optional: für manuelle Tests
+    sensor.when_released = sensor_ausgeloest  # Tür geöffnet
+    sensor.when_pressed = sensor_geschlossen  # Tür geschlossen
     print("Magnetsensor ist aktiv.")
     return sensor
