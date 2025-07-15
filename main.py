@@ -29,7 +29,7 @@ dnn_model_path = "res10_300x300_ssd_iter_140000.caffemodel"
 dnn_config_path = "deploy.prototxt"
 net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 
-templates = Jinja2Templates(directory="templates/gallery.html")
+templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 PHOTO_DIR = "temp"
