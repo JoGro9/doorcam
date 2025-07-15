@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse, HTMLResponse
 from gpiozero import Device, Button
 from gpiozero.pins.pigpio import PiGPIOFactory
 from camera import CameraHandler
@@ -19,25 +20,27 @@ camera = CameraHandler()
 # Gesichtserkennung vorbereiten
 face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
 
-sensor = None  # Wird beim Startup initialisiert
+# Foto-Speicherort
+PHOTO_DIR = "temp"
+if not os.path.exists(PHOTO_DIR):
+    os.makedirs(PHOTO_DIR)
+
+sensor = None  # Wird beim Startup gesetzt
 
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
-    intervall = 0.5  # Sekunden
+    intervall = 0.5
     gesicht_gefunden = False
-
-    if not os.path.exists("temp"):
-        os.makedirs("temp")
 
     for i in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        bild_pfad = f"temp/photo_{timestamp}.jpg"
+        bild_pfad = os.path.join(PHOTO_DIR, f"photo_{timestamp}.jpg")
 
         # Foto aufnehmen
         camera.take_picture(bild_pfad)
 
-        # Bild laden und verarbeiten
+        # Bild laden
         img = cv2.imread(bild_pfad)
         if img is None:
             print(f"Konnte Bild nicht laden: {bild_pfad}")
@@ -72,7 +75,6 @@ def init_sensor():
 
 
 def sensor_loop():
-    # Optional: Polling-Loop zur zusätzlichen Logik
     while True:
         time.sleep(1)
 
@@ -88,3 +90,32 @@ def startup_event():
 @app.get("/")
 def root():
     return {"message": "DoorCam läuft"}
+
+
+# 📸 Galerie-Endpunkte:
+
+@app.get("/photo/{filename}")
+def get_photo(filename: str):
+    pfad = os.path.join(PHOTO_DIR, filename)
+    if os.path.exists(pfad):
+        return FileResponse(pfad, media_type="image/jpeg")
+    return {"error": "Foto nicht gefunden"}
+
+
+@app.get("/gallery", response_class=HTMLResponse)
+def gallery():
+    bilder = sorted(
+        [f for f in os.listdir(PHOTO_DIR) if f.endswith(".jpg")],
+        reverse=True
+    )
+
+    html = "<h1>Türkamera Galerie</h1><div style='display:flex; flex-wrap:wrap;'>"
+    for bild in bilder:
+        html += f"""
+            <div style='margin:10px'>
+                <img src='/photo/{bild}' width='320' style='border:1px solid #ccc'/><br>
+                <small>{bild}</small>
+            </div>
+        """
+    html += "</div>"
+    return html
