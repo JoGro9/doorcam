@@ -1,34 +1,67 @@
-from fastapi import FastAPI
-from sensor import init_sensor
-from camera import CameraHandler
-import threading
+from gpiozero import Device, Button
+from gpiozero.pins.pigpio import PiGPIOFactory
+import cv2
 import time
+import os
+from datetime import datetime
+from camera import CameraHandler  # Deine Kamera-Klasse
 
-app = FastAPI()
-sensor = None
+# Pin-Factory global setzen
+Device.pin_factory = PiGPIOFactory()
+
+# Kamera-Handler initialisieren
 camera = CameraHandler()
 
-def sensor_loop():
-    triggered_before = False
-    while True:
-        triggered = not sensor.is_pressed  # Tür ist offen → Kontakt unterbrochen
-        if triggered and not triggered_before:
-            print("Sensor ausgelöst – mache Foto...")
-            camera.take_picture()
-        triggered_before = triggered
-        time.sleep(1)
+# Gesichtserkennung vorbereiten
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-@app.on_event("startup")
-def startup_event():
-    global sensor
-    sensor = init_sensor()
-    print("Sensor initialisiert:", sensor)
-    threading.Thread(target=sensor_loop, daemon=True).start()
+def mache_fotos_und_erkenne_gesicht():
+    max_fotos = 5
+    intervall = 0.5  # Sekunden
+    gesicht_gefunden = False
+    
+    # Temp-Ordner sicherstellen
+    if not os.path.exists("temp"):
+        os.makedirs("temp")
+    
+    for i in range(max_fotos):
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        bild_pfad = f"temp/photo_{timestamp}.jpg"
+        
+        # Foto aufnehmen
+        camera.take_picture(bild_pfad)
+        
+        # Bild laden und in Graustufen umwandeln
+        img = cv2.imread(bild_pfad)
+        graustufen = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Gesichter erkennen
+        gesichter = face_cascade.detectMultiScale(graustufen, scaleFactor=1.1, minNeighbors=5)
+        
+        if len(gesichter) > 0:
+            print(f"Gesicht erkannt auf Foto {bild_pfad}")
+            # Foto behalten (kannst es ggf. noch verschieben oder umbenennen)
+            gesicht_gefunden = True
+            break
+        else:
+            # Kein Gesicht: Foto löschen
+            os.remove(bild_pfad)
+        
+        time.sleep(intervall)
+    
+    if not gesicht_gefunden:
+        print("Kein Gesicht erkannt.")
 
-@app.get("/")
-def root():
-    return {"message": "DoorCam läuft"}
+def sensor_ausgeloest():
+    print("Tür wurde geöffnet – Sensor ausgelöst.")
+    mache_fotos_und_erkenne_gesicht()
 
-@app.get("/status")
-def status():
-    return {"sensor_triggered": not sensor.is_pressed}
+def init_sensor():
+    # pull_up=True: Pin ist HIGH, wenn Sensorkontakt offen ist (Tür offen)
+    sensor = Button(17, pull_up=True)
+    sensor.when_released = sensor_ausgeloest  # Event: Tür öffnet (Kontakt trennt)
+    print("Magnetsensor ist aktiv.")
+    return sensor
+
+# Wenn du den Sensor sofort initialisieren willst (z.B. beim Import)
+# sensor = init_sensor()
