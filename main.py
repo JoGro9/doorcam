@@ -34,6 +34,10 @@ erkannte_bilder = []
 # Liste für alle gemachten Bilder (filename, confidence)
 alle_bilder = []
 
+# Entprellung global
+letzte_ausloesung = None
+ENTPRELLZEIT = 2  # Sekunden
+
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -75,10 +79,6 @@ def mache_fotos_und_erkenne_gesicht():
             gesicht_gefunden = True
             # Hier abbrechen, da Gesicht gefunden
             break
-        else:
-            # Kein Gesicht mit Confidence >0.5 erkannt, Bild speichern erstmal
-            # Löschen nicht sofort, da wir Bild mit bestmöglicher Übereinstimmung evtl. brauchen
-            pass
 
         time.sleep(intervall)
 
@@ -101,8 +101,14 @@ def mache_fotos_und_erkenne_gesicht():
 
 
 def sensor_ausgeloest():
-    print("Tür wurde geöffnet – Sensor ausgelöst.")
-    mache_fotos_und_erkenne_gesicht()
+    global letzte_ausloesung
+    jetzt = time.time()
+    if letzte_ausloesung is None or (jetzt - letzte_ausloesung) > ENTPRELLZEIT:
+        letzte_ausloesung = jetzt
+        print("Tür wurde geöffnet – Sensor ausgelöst.")
+        mache_fotos_und_erkenne_gesicht()
+    else:
+        print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
 
 
 def init_sensor():
@@ -140,16 +146,102 @@ def get_photo(filename: str):
 
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
-    # Zeige nur Bilder mit erkannter positiver Gesichtserkennung ODER das beste Bild bei keinem Treffer
     bilder = [os.path.basename(bild[0]) for bild in erkannte_bilder if os.path.exists(bild[0])]
 
-    html = "<h1>Türkamera Galerie</h1><div style='display:flex; flex-wrap:wrap;'>"
+    now = datetime.now()
+    datum = now.strftime("%A, %d. %B %Y")
+    uhrzeit = now.strftime("%H:%M:%S")
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Türkamera Galerie</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Text:wght@400;600&display=swap');
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Oxygen,
+                    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+                background: #f9f9f9;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }}
+            h1 {{
+                font-weight: 600;
+                color: #111;
+                margin-bottom: 5px;
+            }}
+            #datetime {{
+                color: #666;
+                margin-bottom: 20px;
+                font-size: 1.1em;
+                font-weight: 400;
+            }}
+            .gallery {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                justify-content: flex-start;
+            }}
+            .bild-container {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                padding: 10px;
+                max-width: 320px;
+                text-align: center;
+                transition: box-shadow 0.3s ease;
+            }}
+            .bild-container:hover {{
+                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            }}
+            img {{
+                max-width: 100%;
+                border-radius: 8px;
+                user-select: none;
+            }}
+            small {{
+                display: block;
+                margin-top: 8px;
+                color: #888;
+                font-size: 0.85em;
+                font-family: monospace;
+                word-break: break-word;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>Türkamera Galerie</h1>
+        <div id="datetime">{datum} | <span id="uhrzeit">{uhrzeit}</span></div>
+        <div class="gallery">
+    """
+
     for bild in bilder:
         html += f"""
-            <div style='margin:10px'>
-                <img src='/photo/{bild}' width='320' style='border:1px solid #ccc'/><br>
+            <div class="bild-container">
+                <img src='/photo/{bild}' alt='Türkamera Bild'/>
                 <small>{bild}</small>
             </div>
         """
-    html += "</div>"
-    return html
+    html += """
+        </div>
+
+        <script>
+        // Uhrzeit live aktualisieren
+        function updateTime() {
+            const uhrzeitSpan = document.getElementById('uhrzeit');
+            const jetzt = new Date();
+            const stunden = String(jetzt.getHours()).padStart(2, '0');
+            const minuten = String(jetzt.getMinutes()).padStart(2, '0');
+            const sekunden = String(jetzt.getSeconds()).padStart(2, '0');
+            uhrzeitSpan.textContent = `${stunden}:${minuten}:${sekunden}`;
+        }
+        setInterval(updateTime, 1000);
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
