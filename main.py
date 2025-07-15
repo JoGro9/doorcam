@@ -90,11 +90,11 @@ def sensor_ausgeloest():
     jetzt = time.time()
 
     if jetzt - letzte_ausloesung < ENTPRELLZEIT:
-        print("Sensor ausgelöst, aber Entprellzeit aktiv - Ignoriere.")
+        print("Sensor ausgelöst (geschlossen), aber Entprellzeit aktiv - Ignoriere.")
         return
 
     if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
-        print("Sensor zu schnell erneut ausgelöst - vermuteter Fehltrigger.")
+        print("Sensor zu schnell erneut ausgelöst (geschlossen) - vermuteter Fehltrigger.")
         return
 
     letzte_ausloesung = jetzt
@@ -102,7 +102,20 @@ def sensor_ausgeloest():
     mache_fotos_und_erkenne_gesicht()
 
 def sensor_offen():
-    print("Tür wurde geöffnet.")
+    global letzte_ausloesung
+    jetzt = time.time()
+
+    if jetzt - letzte_ausloesung < ENTPRELLZEIT:
+        print("Sensor ausgelöst (offen), aber Entprellzeit aktiv - Ignoriere.")
+        return
+
+    if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
+        print("Sensor zu schnell erneut ausgelöst (offen) - vermuteter Fehltrigger.")
+        return
+
+    letzte_ausloesung = jetzt
+    print("Tür wurde geöffnet – starte Gesichtserkennung")
+    mache_fotos_und_erkenne_gesicht()
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
@@ -303,4 +316,3 @@ def gallery():
     </html>
     """
     return html
-
