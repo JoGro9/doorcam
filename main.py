@@ -29,10 +29,11 @@ if not os.path.exists(PHOTO_DIR):
 
 sensor = None  # Wird beim Startup gesetzt
 
-# Entprellung global
+# Entprellung und Status global
 letzte_ausloesung = 0
-ENTPRELLZEIT = 2
-MIN_TRIGGER_ABSTAND = 1.0
+ENTPRELLZEIT = 2  # Sekunden Entprellzeit
+tuer_offen = False  # Status, ob Tür aktuell offen ist
+
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
@@ -85,25 +86,32 @@ def mache_fotos_und_erkenne_gesicht():
             if bild not in erkannte_dateien and os.path.exists(bild):
                 os.remove(bild)
 
+
 def sensor_ausgeloest():
-    # Tür wurde geschlossen – keine Aktion gewünscht
-    print("Tür wurde geschlossen – keine Fotos werden gemacht.")
+    global tuer_offen
+    # Tür wurde geschlossen
+    if tuer_offen:  # Nur reagieren, wenn Tür vorher offen war
+        print("Tür wurde geschlossen – keine Fotos werden gemacht.")
+        tuer_offen = False
+
 
 def sensor_offen():
-    global letzte_ausloesung
+    global letzte_ausloesung, tuer_offen
     jetzt = time.time()
 
-    if jetzt - letzte_ausloesung < ENTPRELLZEIT:
-        print("Sensor ausgelöst (offen), aber Entprellzeit aktiv - Ignoriere.")
+    if tuer_offen:
+        print("Tür ist schon als offen markiert – ignoriere.")
         return
 
-    if jetzt - letzte_ausloesung < MIN_TRIGGER_ABSTAND:
-        print("Sensor zu schnell erneut ausgelöst (offen) - vermuteter Fehltrigger.")
+    if jetzt - letzte_ausloesung < ENTPRELLZEIT:
+        print("Entprellzeit aktiv – Ignoriere Sensor-Auslösung.")
         return
 
     letzte_ausloesung = jetzt
+    tuer_offen = True
     print("Tür wurde geöffnet – starte Gesichtserkennung")
     mache_fotos_und_erkenne_gesicht()
+
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
@@ -112,9 +120,11 @@ def init_sensor():
     print("Magnetsensor ist aktiv.")
     return sensor
 
+
 def sensor_loop():
     while True:
         time.sleep(1)
+
 
 @app.on_event("startup")
 def startup_event():
@@ -123,9 +133,11 @@ def startup_event():
     threading.Thread(target=sensor_loop, daemon=True).start()
     print("System gestartet.")
 
+
 @app.get("/")
 def root():
     return {"message": "DoorCam läuft"}
+
 
 @app.get("/photo/{filename}")
 def get_photo(filename: str):
@@ -133,6 +145,7 @@ def get_photo(filename: str):
     if os.path.exists(pfad):
         return FileResponse(pfad, media_type="image/jpeg")
     return {"error": "Foto nicht gefunden"}
+
 
 @app.post("/gallery/clear")
 def clear_gallery(request: Request):
@@ -148,6 +161,7 @@ def clear_gallery(request: Request):
     print(f"{gelöscht} Bilder gelöscht.")
     return RedirectResponse(url="/gallery", status_code=303)
 
+
 def format_date_from_filename(filename: str) -> str:
     try:
         basename = os.path.basename(filename)
@@ -161,6 +175,7 @@ def format_date_from_filename(filename: str) -> str:
     except Exception as e:
         print(f"Fehler beim Parsen des Datums: {e}")
         return "Unbekanntes Datum"
+
 
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
