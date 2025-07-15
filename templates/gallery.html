@@ -4,17 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Türkamera Galerie</title>
-    <style>
-        <link rel="stylesheet" href="/static/styles.css" />
-    </style>
+    <!-- Korrektes CSS-Link -->
+    <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
     <h1>Türkamera Galerie</h1>
     <div id="datetime">{{ datum }} | <span id="uhrzeit">{{ uhrzeit }}</span></div>
 
-    <form method="post" action="/gallery/clear" onsubmit="return confirm('Wirklich alle Bilder löschen?');">
-        <button type="submit" class="delete-button">📸 Galerie löschen</button>
-    </form>
+    <!-- Button ohne Formular – wird per JS gesteuert -->
+    <button id="delete-btn" class="delete-button">📸 Galerie löschen</button>
 
     <div class="gallery">
         {% for bild, dateiname, aufnahmezeit in bilder %}
@@ -27,13 +25,33 @@
     </div>
 
     <script>
-    function updateTime() {
-        const uhrzeitElem = document.getElementById('uhrzeit');
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('de-DE');
-        uhrzeitElem.textContent = timeString;
-    }
-    setInterval(updateTime, 1000);
+        function updateTime() {
+            const uhrzeitElem = document.getElementById('uhrzeit');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('de-DE');
+            uhrzeitElem.textContent = timeString;
+        }
+        setInterval(updateTime, 1000);
+
+        // JS-Button-Handling für Galerie löschen
+        document.getElementById('delete-btn').addEventListener('click', async () => {
+            if (!confirm("Willst du wirklich alle Bilder löschen?")) return;
+
+            try {
+                const response = await fetch('/gallery/clear', {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                alert(result.message || result.error || "Unbekannter Fehler");
+
+                if (response.ok) {
+                    location.reload(); // Seite neu laden, um leere Galerie zu zeigen
+                }
+            } catch (err) {
+                alert("Netzwerkfehler oder Server nicht erreichbar.");
+            }
+        });
     </script>
 </body>
 </html>
+
