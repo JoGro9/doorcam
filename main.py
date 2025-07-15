@@ -14,6 +14,9 @@ import os
 from datetime import datetime, timedelta
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 app = FastAPI()
@@ -194,7 +197,7 @@ def format_date_from_filename(filename: str) -> str:
         return "Unbekanntes Datum"
 
 @app.get("/gallery", response_class=HTMLResponse)
-def gallery(_: bool = Depends(check_credentials)):
+def gallery(request: Request, _: bool = Depends(check_credentials)):
     jetzt = datetime.now()
     drei_tage_zurueck = jetzt - timedelta(days=3)
 
@@ -210,144 +213,24 @@ def gallery(_: bool = Depends(check_credentials)):
             time_part = parts[2]
             dt = datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
             if dt >= drei_tage_zurueck:
-                bilder.append((os.path.join(PHOTO_DIR, dateiname), dt))
+                aufnahmezeit = format_date_from_filename(dateiname)
+                bilder.append((os.path.join(PHOTO_DIR, dateiname), dateiname, aufnahmezeit))
         except Exception as e:
             print(f"Fehler beim Parsen des Datums von {dateiname}: {e}")
             continue
 
-    bilder.sort(key=lambda x: x[1], reverse=True)
+    bilder.sort(key=lambda x: x[0], reverse=True)  # sortiere nach Pfad (Datum)
 
     datum = jetzt.strftime("%A, %d. %B %Y")
     uhrzeit = jetzt.strftime("%H:%M:%S")
 
-    html = f"""
-    <!DOCTYPE html>
-    <html lang="de">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Türkamera Galerie</title>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Text:wght@400;600&display=swap');
-            body {{
-                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Oxygen,
-                    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-                background: #f9f9f9;
-                color: #333;
-                margin: 0;
-                padding: 20px;
-            }}
-            h1 {{
-                font-weight: 600;
-                color: #111;
-                margin-bottom: 5px;
-            }}
-            #datetime {{
-                color: #666;
-                margin-bottom: 20px;
-                font-size: 1.1em;
-                font-weight: 400;
-            }}
-            .gallery {{
-                display: flex;
-                flex-wrap: wrap;
-                gap: 20px;
-                justify-content: flex-start;
-            }}
-            .bild-container {{
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-                padding: 10px;
-                max-width: 320px;
-                text-align: center;
-                transition: box-shadow 0.3s ease;
-            }}
-            .bild-container:hover {{
-                box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-            }}
-            img {{
-                max-width: 100%;
-                border-radius: 8px;
-                user-select: none;
-            }}
-            small {{
-                display: block;
-                margin-top: 8px;
-                color: #888;
-                font-size: 0.85em;
-                font-family: monospace;
-                word-break: break-word;
-            }}
-            .aufnahmezeit {{
-                font-size: 0.9em;
-                color: #555;
-                margin-top: 4px;
-                font-style: italic;
-            }}
-            #delete-btn {{
-                margin-bottom: 20px;
-                background: #e53935;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                font-size: 1em;
-                border-radius: 6px;
-                cursor: pointer;
-            }}
-            #delete-btn:hover {{
-                background: #d32f2f;
-            }}
-        </style>
-    </head>
-    <body>
-        <h1>Türkamera Galerie</h1>
-        <div id="datetime">{datum} | <span id="uhrzeit">{uhrzeit}</span></div>
-        <button id="delete-btn">Galerie leeren</button>
-        <div class="gallery">
-    """
+    return templates.TemplateResponse("gallery.html", {
+        "request": request,
+        "datum": datum,
+        "uhrzeit": uhrzeit,
+        "bilder": bilder,
+    })
 
-    for bild, _ in bilder:
-        aufnahmezeit = format_date_from_filename(bild)
-        dateiname = os.path.basename(bild)
-        html += f"""
-            <div class="bild-container">
-                <img src='/photo/{dateiname}' alt='Türkamera Bild'/>
-                <small>{dateiname}</small>
-                <div class="aufnahmezeit">{aufnahmezeit}</div>
-            </div>
-        """
-
-    html += """
-        </div>
-        <script>
-            function updateTime() {
-                const uhrzeitElem = document.getElementById('uhrzeit');
-                const now = new Date();
-                uhrzeitElem.textContent = now.toLocaleTimeString('de-DE');
-            }
-            setInterval(updateTime, 1000);
-
-            document.getElementById("delete-btn").addEventListener("click", async () => {
-                const password = prompt("Bitte Admin-Passwort eingeben:");
-                if (!password) return;
-
-                const res = await fetch("/gallery/clear", {
-                    method: "DELETE",
-                    headers: {
-                        "Authorization": "Basic " + btoa("admin:" + password)
-                    }
-                });
-
-                const json = await res.json();
-                alert(json.message || json.error);
-                if (res.ok) location.reload();
-            });
-        </script>
-    </body>
-    </html>
-    """
-    return html
 
 
 @app.delete("/gallery/clear")
