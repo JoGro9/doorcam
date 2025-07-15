@@ -17,10 +17,10 @@ Device.pin_factory = PiGPIOFactory()
 # Kamera initialisieren
 camera = CameraHandler()
 
-# DNN-Modell für Gesichtserkennung laden
-prototxt_path = "deploy.prototxt"
-model_path = "res10_300x300_ssd_iter_140000.caffemodel"
-net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
+# DNN-Gesichtserkennung vorbereiten
+dnn_model_path = "res10_300x300_ssd_iter_140000.caffemodel"
+dnn_config_path = "deploy.prototxt"
+net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 
 # Foto-Speicherort
 PHOTO_DIR = "temp"
@@ -29,12 +29,18 @@ if not os.path.exists(PHOTO_DIR):
 
 sensor = None  # Wird beim Startup gesetzt
 
+# Liste für erkannte Gesichter mit Confidence (filename, confidence)
+erkannte_bilder = []
+# Liste für alle gemachten Bilder (filename, confidence)
+alle_bilder = []
+
 
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
     intervall = 0.5
-    best_confidence = 0.0
-    best_path = None
+    gesicht_gefunden = False
+    erkannte_bilder.clear()
+    alle_bilder.clear()
 
     for i in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
@@ -55,42 +61,53 @@ def mache_fotos_und_erkenne_gesicht():
         net.setInput(blob)
         detections = net.forward()
 
-        found = False
-        for j in range(detections.shape[2]):
-            confidence = detections[0, 0, j, 2]
-            if confidence > 0.5:
-                print(f"✅ Gesicht erkannt mit {confidence:.2f} auf {bild_pfad}")
-                found = True
-                break
-            elif confidence > best_confidence:
-                best_confidence = confidence
-                best_path = bild_pfad
+        max_confidence = 0
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
+            if confidence > max_confidence:
+                max_confidence = confidence
 
-        if found:
+        alle_bilder.append((bild_pfad, max_confidence))
+
+        if max_confidence > 0.5:
+            print(f"Gesicht erkannt auf Foto {bild_pfad} (Confidence: {max_confidence:.2f})")
+            erkannte_bilder.append((bild_pfad, max_confidence))
+            gesicht_gefunden = True
+            # Hier abbrechen, da Gesicht gefunden
             break
         else:
-            time.sleep(intervall)
+            # Kein Gesicht mit Confidence >0.5 erkannt, Bild speichern erstmal
+            # Löschen nicht sofort, da wir Bild mit bestmöglicher Übereinstimmung evtl. brauchen
+            pass
 
-    if not found:
-        if best_path:
-            print(f"⚠️ Kein klares Gesicht erkannt, bestes war {best_confidence:.2f}, Bild behalten: {best_path}")
-        else:
-            print("❌ Kein Gesicht erkannt und kein brauchbares Bild.")
+        time.sleep(intervall)
+
+    # Wenn kein Gesicht erkannt wurde, suche Bild mit höchster Confidence
+    if not gesicht_gefunden and alle_bilder:
+        alle_bilder.sort(key=lambda x: x[1], reverse=True)  # absteigend sortieren
+        bestes_bild, best_conf = alle_bilder[0]
+        print(f"Kein Gesicht erkannt. Speichere Bild mit höchster Confidence {best_conf:.2f}: {bestes_bild}")
+        # Alle Bilder außer bestes Bild löschen
+        for bild, conf in alle_bilder[1:]:
+            if os.path.exists(bild):
+                os.remove(bild)
+        erkannte_bilder.append((bestes_bild, best_conf))
+    else:
+        # Wenn Gesicht erkannt, lösche alle Bilder außer erkannte
+        for bild, conf in alle_bilder:
+            if (bild, conf) not in erkannte_bilder:
+                if os.path.exists(bild):
+                    os.remove(bild)
 
 
 def sensor_ausgeloest():
-    print("Tür geöffnet erkannt.")
+    print("Tür wurde geöffnet – Sensor ausgelöst.")
     mache_fotos_und_erkenne_gesicht()
 
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
-
-    def check_status():
-        if not sensor.is_pressed:
-            sensor_ausgeloest()
-
-    sensor.when_released = check_status  # Reagiere nur beim Öffnen
+    sensor.when_released = sensor_ausgeloest
     print("Magnetsensor ist aktiv.")
     return sensor
 
@@ -123,10 +140,8 @@ def get_photo(filename: str):
 
 @app.get("/gallery", response_class=HTMLResponse)
 def gallery():
-    bilder = sorted(
-        [f for f in os.listdir(PHOTO_DIR) if f.endswith(".jpg")],
-        reverse=True
-    )
+    # Zeige nur Bilder mit erkannter positiver Gesichtserkennung ODER das beste Bild bei keinem Treffer
+    bilder = [os.path.basename(bild[0]) for bild in erkannte_bilder if os.path.exists(bild[0])]
 
     html = "<h1>Türkamera Galerie</h1><div style='display:flex; flex-wrap:wrap;'>"
     for bild in bilder:
