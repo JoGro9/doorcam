@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Türkamera Galerie</title>
+    <style>
+        /* Dein CSS hier */
+    </style>
+</head>
+<body>
+    <h1>Türkamera Galerie</h1>
+    <div id="datetime">{{ datum }} | <span id="uhrzeit">{{ uhrzeit }}</span></div>
+
+    <form method="post" action="/gallery/clear" onsubmit="return confirm('Wirklich alle Bilder löschen?');">
+        <button type="submit" class="delete-button">📸 Galerie löschen</button>
+    </form>
+
+    <div class="gallery">
+        {% for bild, dateiname, aufnahmezeit in bilder %}
+            <div class="bild-container">
+                <img src="/photo/{{ dateiname }}" alt="Türkamera Bild" />
+                <small>{{ dateiname }}</small>
+                <div class="aufnahmezeit">{{ aufnahmezeit }}</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+    function updateTime() {
+        const uhrzeitElem = document.getElementById('uhrzeit');
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('de-DE');
+        uhrzeitElem.textContent = timeString;
+    }
+    setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
