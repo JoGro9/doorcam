@@ -4,6 +4,9 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from gpiozero import Device, Button
 from gpiozero.pins.pigpio import PiGPIOFactory
 from camera import CameraHandler
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 import threading
 import cv2
 import time
@@ -11,6 +14,7 @@ import os
 from datetime import datetime, timedelta
 
 app = FastAPI()
+security = HTTPBasic()
 
 Device.pin_factory = PiGPIOFactory()
 camera = CameraHandler()
@@ -35,6 +39,17 @@ event_lock = threading.Lock()  # Neu: Für gleichzeitige Events
 security = HTTPBasic()
 USERNAME = "admin"
 PASSWORD = "home123"
+
+def check_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugang verweigert",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return True
 
 def check_password(credentials: HTTPBasicCredentials = Depends(security)):
     if credentials.password != PASSWORD:
