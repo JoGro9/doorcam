@@ -5,10 +5,11 @@ from gpiozero.pins.pigpio import PiGPIOFactory
 Device.pin_factory = PiGPIOFactory()
 
 def sensor_ausgeloest():
-    print("🚪 Tür wurde geöffnet – Sensor ausgelöst!")
+    print("Tür wurde geöffnet – Sensor ausgelöst.")
 
 def init_sensor():
-    sensor = Button(17)
-    sensor.when_pressed = sensor_ausgeloest
+    # pull_up=True: Pin ist HIGH, wenn der Sensor offen ist
+    sensor = Button(17, pull_up=True)
+    sensor.when_released = sensor_ausgeloest  # wird ausgelöst, wenn der Kontakt unterbrochen wird
     print("Magnetsensor ist aktiv.")
-    return sensor  # ✅ Wichtig: Sensorinstanz zurückgeben
+    return sensor
