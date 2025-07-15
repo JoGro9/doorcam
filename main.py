@@ -50,9 +50,11 @@ def mache_fotos_und_erkenne_gesicht():
         gesichter = face_cascade.detectMultiScale(
             graustufen,
             scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(40, 40)
+            minNeighbors=6,
+            minSize=(60, 60),
+            maxSize=(300, 300)
         )
+
 
 
         if len(gesichter) > 0:
