@@ -49,9 +49,9 @@ def mache_fotos_und_erkenne_gesicht():
         graustufen = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gesichter = face_cascade.detectMultiScale(
             graustufen,
-            scaleFactor=1.2,
-            minNeighbors=7,
-            minSize=(80, 80)
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(40, 40)
         )
 
 
