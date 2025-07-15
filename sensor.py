@@ -5,16 +5,23 @@ Device.pin_factory = PiGPIOFactory()
 
 def sensor_ausgeloest():
     print("Tür wurde geöffnet – Sensor ausgelöst.")
-    # Hier kannst du deine Funktion aufrufen, z.B.:
-    # mache_fotos_und_erkenne_gesicht(camera)
-    # Oder ein Event an main.py senden
+
 
 def sensor_geschlossen():
     print("Tür wurde geschlossen – Sensor verbunden.")
 
 def init_sensor():
-    sensor = Button(17, pull_up=True, bounce_time=0.3)  # Entprellzeit 300 ms
-    sensor.when_released = sensor_ausgeloest   # Tür öffnet (Kontakt trennt)
-    sensor.when_pressed = sensor_geschlossen   # Tür schließt (Kontakt verbindet)
+    sensor = Button(17, pull_up=True)
+
+    def check_status():
+        # Wurde Tür gerade geöffnett?
+        if not sensor.is_pressed:
+            print("Tür geöffnet")
+            mache_fotos_und_erkenne_gesicht()
+        else:
+            print("Tür geschlossen")
+
+    sensor.when_pressed = check_status  # Tür zu
+    sensor.when_released = check_status  # Tür auf
     print("Magnetsensor ist aktiv.")
     return sensor
