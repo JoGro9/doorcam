@@ -63,5 +63,11 @@ def init_sensor():
     print("Magnetsensor ist aktiv.")
     return sensor
 
-# Wenn du den Sensor sofort initialisieren willst (z.B. beim Import)
-# sensor = init_sensor()
+if __name__ == "__main__":
+    sensor = init_sensor()
+    print("Starte Überwachung (Strg+C zum Beenden).")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Programm beendet.")
