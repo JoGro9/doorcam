@@ -29,10 +29,6 @@ if not os.path.exists(PHOTO_DIR):
 
 sensor = None  # Wird beim Startup gesetzt
 
-# Listen für Bilder (filename, confidence)
-erkannte_bilder = []
-alle_bilder = []
-
 # Entprellung global
 letzte_ausloesung = 0
 ENTPRELLZEIT = 2  # Sekunden Mindestabstand
@@ -41,9 +37,8 @@ MIN_TRIGGER_ABSTAND = 1.0  # Sekunden zwischen Tür-Events
 def mache_fotos_und_erkenne_gesicht():
     max_fotos = 5
     intervall = 0.5
-    gesicht_gefunden = False
-    erkannte_bilder.clear()
-    alle_bilder.clear()
+    erkannte_bilder = []
+    alle_bilder = []
 
     for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
@@ -56,7 +51,6 @@ def mache_fotos_und_erkenne_gesicht():
             print(f"Konnte Bild nicht laden: {bild_pfad}")
             continue
 
-        h, w = img.shape[:2]
         blob = cv2.dnn.blobFromImage(cv2.resize(img, (300, 300)), 1.0,
                                      (300, 300), (104.0, 177.0, 123.0))
         net.setInput(blob)
@@ -73,24 +67,26 @@ def mache_fotos_und_erkenne_gesicht():
         if max_confidence > 0.5:
             print(f"Gesicht erkannt auf Foto {bild_pfad} (Confidence: {max_confidence:.2f})")
             erkannte_bilder.append((bild_pfad, max_confidence))
-            gesicht_gefunden = True
-            break
+            break  # Sofort abbrechen, wenn Gesicht erkannt
 
         time.sleep(intervall)
 
-    if not gesicht_gefunden and alle_bilder:
+    if not erkannte_bilder and alle_bilder:
+        # Kein Gesicht gefunden, bestes Bild behalten
         alle_bilder.sort(key=lambda x: x[1], reverse=True)
         bestes_bild, best_conf = alle_bilder[0]
         print(f"Kein Gesicht erkannt. Bild mit höchster Confidence {best_conf:.2f}: {bestes_bild}")
+        erkannte_bilder.append((bestes_bild, best_conf))
+        # Rest löschen
         for bild, conf in alle_bilder[1:]:
             if os.path.exists(bild):
                 os.remove(bild)
-        erkannte_bilder.append((bestes_bild, best_conf))
     else:
+        # Alle Bilder löschen außer die erkannten
+        erkannte_dateien = set(b[0] for b in erkannte_bilder)
         for bild, conf in alle_bilder:
-            if (bild, conf) not in erkannte_bilder:
-                if os.path.exists(bild):
-                    os.remove(bild)
+            if bild not in erkannte_dateien and os.path.exists(bild):
+                os.remove(bild)
 
 def sensor_ausgeloest():
     global letzte_ausloesung
@@ -105,12 +101,24 @@ def sensor_ausgeloest():
         return
 
     letzte_ausloesung = jetzt
-    print("Tür wurde geöffnet – Sensor ausgelöst.")
+    print("Tür wurde geschlossen – starte Gesichtserkennung")
     mache_fotos_und_erkenne_gesicht()
+
+def sensor_offen():
+    print("Tür wurde geöffnet.")
 
 def init_sensor():
     sensor = Button(17, pull_up=True)
-    sensor.when_released = sensor_ausgeloest
+
+    # Sensor signalisiert offen (Schalter offen = gedrückt?)
+    # Je nach Hardware: 
+    # Angenommen, Tür geschlossen = switch gedrückt = pressed=True
+    # Tür offen = switch losgelassen = released=True
+
+    # Wir reagieren auf beide Events:
+    sensor.when_pressed = sensor_ausgeloest  # Tür zu
+    sensor.when_released = sensor_offen      # Tür auf
+
     print("Magnetsensor ist aktiv.")
     return sensor
 
@@ -160,12 +168,11 @@ def gallery():
         if not dateiname.lower().endswith(".jpg"):
             continue
         try:
-            # Datum aus Dateiname extrahieren (photo_YYYYMMDD_HHMMSS_xxxxxx.jpg)
             parts = dateiname.split('_')
             if len(parts) < 3:
                 continue
-            date_part = parts[1]  # YYYYMMDD
-            time_part = parts[2]  # HHMMSS
+            date_part = parts[1]  
+            time_part = parts[2]
             dt = datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
             if dt >= drei_tage_zurueck:
                 bilder.append((os.path.join(PHOTO_DIR, dateiname), dt))
@@ -173,7 +180,6 @@ def gallery():
             print(f"Fehler beim Parsen des Datums von {dateiname}: {e}")
             continue
 
-    # Sortiere Bilder nach Datum absteigend (neueste zuerst)
     bilder.sort(key=lambda x: x[1], reverse=True)
 
     datum = jetzt.strftime("%A, %d. %B %Y")
