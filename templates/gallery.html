@@ -4,15 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Türkamera Galerie</title>
-    <!-- Korrektes CSS-Link -->
     <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
     <h1>Türkamera Galerie</h1>
     <div id="datetime">{{ datum }} | <span id="uhrzeit">{{ uhrzeit }}</span></div>
 
-    <!-- Button ohne Formular – wird per JS gesteuert -->
-    <button id="delete-btn" class="delete-button">📸 Galerie löschen</button>
+    <button id="delete-btn" class="delete-button">Galerie löschen</button>
 
     <div class="gallery">
         {% for bild, dateiname, aufnahmezeit in bilder %}
