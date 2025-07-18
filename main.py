@@ -234,7 +234,7 @@ def gallery(request: Request, _: bool = Depends(check_credentials)):
     })
 
 @app.get("/personen")
-def show_db():
+def show_db(request: Request):
     try:
         conn = sqlite3.connect("faces.db")
         cursor = conn.cursor()
