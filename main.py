@@ -32,7 +32,7 @@ net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
 
 PHOTO_DIR = "temp"
 if not os.path.exists(PHOTO_DIR):
