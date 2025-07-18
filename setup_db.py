@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS personen (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     encoding BLOB,
-    bild BLOB,
+    bild BLOB
 )
 """)
 
