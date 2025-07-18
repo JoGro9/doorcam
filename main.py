@@ -249,7 +249,7 @@ def show_db():
         return templates.TemplateResponse("db.html", {
             "request": request,
             "personen": personen
-            )}
+        })
 
     except Exception as e: 
         return {"error": f"Fehler beim laden der Datenbank: {e}"}
