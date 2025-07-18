@@ -243,12 +243,13 @@ def show_db():
         conn.close()
 
         personen [
-             {"id": row[0], "name": row[1], "bild": row[2]}
-        
+            {"id": row[0], "name": row[1], "bild": row[2]}
+            for row in daten        
+        ]
         return templates.TemplateResponse("db.html", {
             "request": request,
             "personen": personen
-        ]
+
     except Exception as e: 
         return {"error": f"Fehler beim laden der Datenbank: {e}"}
 
