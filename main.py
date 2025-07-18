@@ -247,7 +247,7 @@ def show_db():
         for row in daten
         ]
     except Exception as e: 
-        return {"error": f"Fehler beim laden der Datenbank"}
+        return {"error": f"Fehler beim laden der Datenbank: {e}"}
 
 
 @app.delete("/gallery/clear")
