@@ -69,12 +69,12 @@
     <main>
         {% if bilder %}
             <div class="gallery">
-                {% for pfad, dateiname, aufnahmezeit in bilder %}
+                {% for person in personen %}
                     <div class="photo-card">
-                        <img src="/photo/{{ dateiname }}" alt="Foto {{ dateiname }}" />
+                        <img src="{{ person.bild }}" alt="Foto von {{ person.name }}" />
                         <div class="photo-info">
-                            <div class="filename">{{ dateiname }}</div>
-                            <div class="datetime">{{ aufnahmezeit }}</div>
+                            <div class="Name">{{ person.name }}</div>
+                            <div class="id">{{ person.id }}</div>
                         </div>
                     </div>
                 {% endfor %}
