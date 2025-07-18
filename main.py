@@ -232,6 +232,20 @@ def gallery(request: Request, _: bool = Depends(check_credentials)):
         "bilder": bilder,
     })
 
+@app.get("/personen")
+def show_db()
+    try:
+        conn = sqlite3.connect("faces.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, alter, geschlecht FROM personen")
+        daten = cursor.fetchall()
+        conn.close()
+
+        return [
+             {"id": row[0], "name": row[1], "alter": row[2], "geschlecht": row[3]}
+        for row in daten
+        ]
+    except {"error": f"Fehler beim laden der Datenbank"}
 
 
 @app.delete("/gallery/clear")
