@@ -71,7 +71,7 @@
             <div class="gallery">
                 {% for person in personen %}
                     <div class="photo-card">
-                        <img src="{{ person.bild }}" alt="Foto von {{ person.name }}" />
+                        <img src="/{{ person.bild }}" alt="Foto von {{ person.name }}" />
                         <div class="photo-info">
                             <div class="Name">{{ person.name }}</div>
                             <div class="id">{{ person.id }}</div>
