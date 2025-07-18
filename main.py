@@ -242,7 +242,7 @@ def show_db():
         daten = cursor.fetchall()
         conn.close()
 
-        personen [
+        personen = [
             {"id": row[0], "name": row[1], "bild": row[2]}
             for row in daten        
         ]
