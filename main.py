@@ -242,7 +242,7 @@ def show_db():
         conn.close()
 
         return [
-             {"id": row[0], "name": row[1], "alter": row[2], "geschlecht": row[3]}
+             {"id": row[0], "name": row[1], "bild": row[2]}
         for row in daten
         ]
     except Exception as e: 
