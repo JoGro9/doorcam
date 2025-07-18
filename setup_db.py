@@ -9,7 +9,7 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS personen (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
-    bild BLOB
+    bild TEXT
 )
 """)
 
