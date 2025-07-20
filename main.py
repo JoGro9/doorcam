@@ -19,7 +19,6 @@ import sqlite3
 
 
 
-#klappt
 app = FastAPI()
 security = HTTPBasic()
 
