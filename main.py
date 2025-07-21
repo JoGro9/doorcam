@@ -159,8 +159,11 @@ def encode_face(bild_pfad):
         print("⚠️ Fehler beim Verarbeiten des Bildes:", str(e))
         return None
 
-def match_face(erkanntes_profil):
-    id = None
+def match_face(erkanntes_profil_json):
+    # erkanntes_profil JSON-String in numpy array umwandeln
+    erkanntes_profil = np.array(json.loads(erkanntes_profil_json), dtype=np.float32)
+
+    # Datenbankverbindung öffnen und Daten auslesen
     conn = sqlite3.connect("faces.db")
     cursor = conn.cursor()
     cursor.execute("SELECT id, name, bild, encoding FROM personen")
@@ -168,15 +171,20 @@ def match_face(erkanntes_profil):
     conn.close()
 
     personen = [
-          {"id": row[0], "name": row[1], "bild": row[2], "db_encode": row[3]}
-          for row in daten        
-        ]
+        {"id": row[0], "name": row[1], "bild": row[2], "db_encode": row[3]}
+        for row in daten
+    ]
+
+    # Gesichter vergleichen
     for person in personen:
         encoding_db = np.array(json.loads(person["db_encode"]), dtype=np.float32)
-        match = face_recognition.compare_faces([encoding_db], erkanntes_profil)  # als Liste übergeben
+        match = face_recognition.compare_faces([encoding_db], erkanntes_profil)
         if match[0]:
-            print("Gesichtsuebereinstimmung in Datenbank gefunden")
-            return person.id    
+            print("Gesichtsübereinstimmung in Datenbank gefunden")
+            return person["id"]
+
+    print("Kein passendes Gesicht in der Datenbank gefunden")
+    return None
     
 
 def sensor_event():
