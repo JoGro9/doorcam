@@ -132,6 +132,7 @@ def encode_face(bild_pfad):
     name = ""
     image_path = os.path.join(os.getcwd(), bild_pfad)
     image = face_recognition.load_image_file(image_path)
+    print("imagepath:" + image_path)
     encodings = face_recognition.face_encodings(image)
     encoding = encodings[0]
     # Encoding als JSON speichern, weil es ein numpy array ist
