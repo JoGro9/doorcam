@@ -20,6 +20,7 @@ import face_recognition
 import numpy as np
 import json
 import requests
+from govee_control import set_color
 
 
 
@@ -115,7 +116,8 @@ def mache_fotos_und_erkenne_gesicht():
             erkanntes_profil = encode_face(bild_pfad)
             id = match_face(erkanntes_profil)
             print(f"Match gefunden {id}")
-            govee_set_color(0, 0, 139)
+            ergebnis = govee_set_color(0, 0, 139)
+            print(ergebnis)
             break
 
         time.sleep(intervall)
