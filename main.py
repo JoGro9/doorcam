@@ -130,7 +130,7 @@ def mache_fotos_und_erkenne_gesicht():
 def encode_face(bild_pfad):
     print("vergleiche erkanntes Gesicht mit Datenbank")
     name = ""
-    image = face_recognition.load_image_file(bild_pfad)
+    image = face_recognition.load_image_file("/"+bild_pfad)
     encodings = face_recognition.face_encodings(image)
     encoding = encodings[0]
     # Encoding als JSON speichern, weil es ein numpy array ist
