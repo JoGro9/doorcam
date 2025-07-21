@@ -20,7 +20,6 @@ import face_recognition
 import numpy as np
 import json
 import requests
-from govee_control import set_color
 
 
 
