@@ -115,7 +115,7 @@ def mache_fotos_und_erkenne_gesicht():
             erkanntes_profil = encode_face(bild_pfad)
             id = match_face(erkanntes_profil)
             print(f"Match gefunden {id}")
-            ergebnis = govee_set_color(0, 0, 139)
+            ergebnis = govee_set_color(id)
             print(ergebnis)
             break
 
@@ -135,7 +135,16 @@ def mache_fotos_und_erkenne_gesicht():
                 os.remove(bild)
         print("Kein Gesicht erkannt – alle Bilder gelöscht.")
 
-def govee_set_color(r, g, b):
+def govee_set_color(id):
+    conn = sqlite3.connect("faces.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT r, g, b FROM personen WHERE id = ?", (id,))
+    daten = cursor.fetchone()
+    conn.close()
+
+    if daten is not None:
+        r,g,b = daten
+
     url = "https://developer-api.govee.com/v1/devices/control"
     headers = {
         "Govee-API-Key": API_KEY,
