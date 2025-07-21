@@ -16,6 +16,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from fastapi.staticfiles import StaticFiles
 import sqlite3
+import face_recognition
+import numpy as np
 
 
 
@@ -102,6 +104,9 @@ def mache_fotos_und_erkenne_gesicht():
         if max_confidence > 0.5:
             print(f"Gesicht erkannt auf Foto {bild_pfad} (Confidence: {max_confidence:.2f})")
             erkannte_bilder.append((bild_pfad, max_confidence))
+            erkanntes_profil = encode_face(bild_pfad)
+            id = match_face(erkanntes_profil)
+            print("Match gefunden" + id)
             break
 
         time.sleep(intervall)
@@ -120,6 +125,34 @@ def mache_fotos_und_erkenne_gesicht():
                 os.remove(bild)
         print("Kein Gesicht erkannt – alle Bilder gelöscht.")
 
+def encode_face(bild_pfad):
+    print("vergleiche erkanntes Gesicht mit Datenbank")
+    name = ""
+    image = face_recognition.load_image_file(bild_pfad)
+    encodings = face_recognition.face_encodings(image)
+    encoding = encodings[0]
+    # Encoding als JSON speichern, weil es ein numpy array ist
+    encoding_json = json.dumps(encoding.tolist())
+    return encoding_json
+
+def match_face(erkanntes_profil):
+    id = None
+    conn = sqlite3.connect("faces.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, bild FROM personen")
+    daten = cursor.fetchall()
+    conn.close()
+
+    personen = [
+          {"id": row[0], "name": row[1], "bild": row[2], "db_encode": row[3]}
+          for row in daten        
+        ]
+    for person in personen:
+        match = face_recognition.compare_faces(person.db_encode, erkanntes_profil)
+        if match:
+            print("Gesichtsuebereinstimmung in Datenbank gefunden")
+            return id    
+    
 
 def sensor_event():
     global letzte_ausloesung, tuer_offen, entprell_aktiv
