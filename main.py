@@ -19,6 +19,7 @@ import sqlite3
 import face_recognition
 import numpy as np
 import json
+import requests
 
 
 
@@ -36,6 +37,11 @@ net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
+
+API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
+DEVICE_MAC = "DO:C9:07:C7:A8:20"
+DEVICE_MODEL = "H6008"
+
 
 PHOTO_DIR = "temp"
 if not os.path.exists(PHOTO_DIR):
@@ -109,6 +115,7 @@ def mache_fotos_und_erkenne_gesicht():
             erkanntes_profil = encode_face(bild_pfad)
             id = match_face(erkanntes_profil)
             print(f"Match gefunden {id}")
+            govee_set_color(0, 0, 139)
             break
 
         time.sleep(intervall)
@@ -126,6 +133,23 @@ def mache_fotos_und_erkenne_gesicht():
             if os.path.exists(bild):
                 os.remove(bild)
         print("Kein Gesicht erkannt – alle Bilder gelöscht.")
+
+def govee_set_color(r, g, b):
+    url = "https://developer-api.govee.com/v1/devices/control"
+    headers = {
+        "Govee-API-Key": API_KEY,
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "device": DEVICE_MAC,
+        "model": DEVICE_MODEL,
+        "cmd": {
+            "name": "color",
+            "value": {"r": r, "g": g, "b": b}
+        }
+    }
+    response = requests.put(url, json=payload, headers=headers)
+    return response.json()
 
 def encode_face(bild_pfad):
     print("🔍 Vergleiche erkanntes Gesicht mit Datenbank")
