@@ -86,6 +86,12 @@ def mache_fotos_und_erkenne_gesicht():
     erkannte_bilder = []
     alle_bilder = []
 
+    headers = {"Govee-API-Key": API_KEY}
+    response = requests.get("https://developer-api.govee.com/v1/devices", headers=headers)
+    data = response.json()
+
+    print(data)
+
     for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         bild_pfad = os.path.join(PHOTO_DIR, f"photo_{timestamp}.jpg")
