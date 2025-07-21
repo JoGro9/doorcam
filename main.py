@@ -108,7 +108,7 @@ def mache_fotos_und_erkenne_gesicht():
             erkannte_bilder.append((bild_pfad, max_confidence))
             erkanntes_profil = encode_face(bild_pfad)
             id = match_face(erkanntes_profil)
-            print("Match gefunden" + id)
+            print("Match gefunden" {id})
             break
 
         time.sleep(intervall)
