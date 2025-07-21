@@ -174,9 +174,9 @@ def match_face(erkanntes_profil):
     for person in personen:
         encoding_db = np.array(json.loads(person["db_encode"]), dtype=np.float32)
         match = face_recognition.compare_faces([encoding_db], erkanntes_profil)  # als Liste übergeben
-        if match:
+        if match[0]:
             print("Gesichtsuebereinstimmung in Datenbank gefunden")
-            return id    
+            return person.id    
     
 
 def sensor_event():
