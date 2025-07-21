@@ -128,26 +128,36 @@ def mache_fotos_und_erkenne_gesicht():
         print("Kein Gesicht erkannt – alle Bilder gelöscht.")
 
 def encode_face(bild_pfad):
-    print("vergleiche erkanntes Gesicht mit Datenbank")
+    print("🔍 Vergleiche erkanntes Gesicht mit Datenbank")
+    
+    # Absoluten Pfad zum Bild berechnen
     image_path = os.path.join(os.getcwd(), bild_pfad)
-    print("imagepath:", image_path)
+    print("📸 Bildpfad:", image_path)
 
-    # Bild laden
-    image = face_recognition.load_image_file(image_path)
+    try:
+        # Bild laden
+        image = face_recognition.load_image_file(image_path)
 
-    # Gesichts-Encodings extrahieren
-    encodings = face_recognition.face_encodings(image)
+        # Gesichts-Encodings extrahieren
+        encodings = face_recognition.face_encodings(image)
 
-    # Prüfen, ob ein Gesicht erkannt wurde
-    if not encodings:
-        print("❌ Kein Gesicht erkannt.")
+        # Prüfen, ob ein Gesicht erkannt wurde
+        if not encodings:
+            print("❌ Kein Gesicht erkannt.")
+            return None
+
+        # Erstes erkanntes Gesicht verwenden
+        encoding = encodings[0]
+
+        # Encoding in JSON-String umwandeln
+        encoding_json = json.dumps(encoding.tolist())
+
+        print("✅ Gesicht erfolgreich encodiert.")
+        return encoding_json
+
+    except Exception as e:
+        print("⚠️ Fehler beim Verarbeiten des Bildes:", str(e))
         return None
-
-    encoding = encodings[0]
-
-    # Encoding in JSON-String umwandeln
-    encoding_json = json.dumps(encoding.tolist())
-    return encoding_json
 
 def match_face(erkanntes_profil):
     id = None
