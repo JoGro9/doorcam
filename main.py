@@ -39,7 +39,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
 
 API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
-DEVICE_MAC = "DOC907C7A820"
+DEVICE_MAC = "B0:B5:D0:C9:07:C7:A8:20"
 DEVICE_MODEL = "H6008"
 
 
@@ -85,12 +85,6 @@ def mache_fotos_und_erkenne_gesicht():
     intervall = 0.5
     erkannte_bilder = []
     alle_bilder = []
-
-    headers = {"Govee-API-Key": API_KEY}
-    response = requests.get("https://developer-api.govee.com/v1/devices", headers=headers)
-    data = response.json()
-
-    print(data)
 
     for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
