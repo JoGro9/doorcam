@@ -150,7 +150,8 @@ def match_face(erkanntes_profil):
           for row in daten        
         ]
     for person in personen:
-        match = face_recognition.compare_faces(person.db_encode, erkanntes_profil)
+        encoding_db = np.array(json.loads(person["db_encode"]))  # von JSON-Text zu NumPy-Array
+        match = face_recognition.compare_faces([encoding_db], erkanntes_profil)  # als Liste übergeben
         if match:
             print("Gesichtsuebereinstimmung in Datenbank gefunden")
             return id    
