@@ -141,7 +141,7 @@ def match_face(erkanntes_profil):
     id = None
     conn = sqlite3.connect("faces.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, bild, db_encode FROM personen")
+    cursor.execute("SELECT id, name, bild, encoding FROM personen")
     daten = cursor.fetchall()
     conn.close()
 
