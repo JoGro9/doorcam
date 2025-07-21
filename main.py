@@ -39,7 +39,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
 
 API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
-DEVICE_MAC = "DO:C9:07:C7:A8:20"
+DEVICE_MAC = "DOC907C7A820"
 DEVICE_MODEL = "H6008"
 
 
