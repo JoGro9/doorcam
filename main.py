@@ -175,7 +175,7 @@ def sende_benachrichtigung(id):
     conn.close()
 
     if daten is not None:
-        name = daten
+        name = daten[0]
     try:
         url = f"http://192.168.178.40:8000/notify/{name}"
         response = requests.get(url)
