@@ -165,6 +165,22 @@ def govee_set_color(id):
         response = requests.put(url, json=payload, headers=headers)
         print(f"{mac}: {response.json()}")
 
+def sende_benachrichtigung(id):
+    conn = sqlite3.connect("faces.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM personen WHERE id = ?", (id,))
+    daten = cursor.fetchone()
+    conn.close()
+
+    if daten is not None:
+        name = daten
+    try:
+        url = f"http://192.168.178.40:8000/notify/{name}"
+        response = requests.get(url)
+        print("Benachrichtigung gesendet:", response.json())
+    except Exception as e:
+        print("Fehler beim Senden der Benachrichtigung:", e)
+
 def encode_face(bild_pfad):
     print("🔍 Vergleiche erkanntes Gesicht mit Datenbank")
     
@@ -368,3 +384,14 @@ def clear_gallery(auth: bool = Depends(check_password)):
         return {"message": "Galerie wurde geleert."}
     except Exception as e:
         return {"error": f"Fehler beim Leeren der Galerie: {e}"}
+
+@app.get("/notify/{name}")
+def notify(name: str):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = f"📸 {name} ist um {now} nach Hause gekommen."
+
+    response = requests.post("https://ntfy.sh/doorcam-hebc647hdy67hsn6h4b7d-kalrgdypp",  # 'doorcam' ist dein Topic
+                             data=message.encode('utf-8'),
+                             headers={"Title": "Türkamera", "Priority": "high"})
+
+    return {"status": "ok", "message": message}
