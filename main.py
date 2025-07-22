@@ -40,8 +40,8 @@ app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
 
 API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
 DEVICE_MACS = [
-        "B0:B5:D0:C9:07:C7:A8:20",  # Licht
-        "22:18:D0:C9:07:C7:54:7C"   # Schlafzimmer
+        "22:18:D0:C9:07:C7:54:7C",
+        "B0:B5:D0:C9:07:C7:A8:20"   # Schlafzimmer
     ]
 DEVICE_MODEL = "H6008"
 
