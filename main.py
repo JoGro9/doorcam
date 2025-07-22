@@ -20,6 +20,8 @@ import face_recognition
 import numpy as np
 import json
 import requests
+from urllib.parse import quote
+
 
 
 
