@@ -39,7 +39,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
 
 API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
-DEVICE_MAC = "B0:B5:D0:C9:07:C7:A8:20"
+DEVICE_MACS = [
+        "B0:B5:D0:C9:07:C7:A8:20",  # Licht
+        "22:18:D0:C9:07:C7:54:7C"   # Schlafzimmer
+    ]
 DEVICE_MODEL = "H6008"
 
 
@@ -150,16 +153,17 @@ def govee_set_color(id):
         "Govee-API-Key": API_KEY,
         "Content-Type": "application/json"
     }
-    payload = {
-        "device": DEVICE_MAC,
-        "model": DEVICE_MODEL,
-        "cmd": {
-            "name": "color",
-            "value": {"r": r, "g": g, "b": b}
+    for mac in DEVICE_MACS:
+        payload = {
+            "device": mac,
+            "model": DEVICE_MODEL,
+            "cmd": {
+                "name": "color",
+                "value": {"r": r, "g": g, "b": b}
+            }
         }
-    }
-    response = requests.put(url, json=payload, headers=headers)
-    return response.json()
+        response = requests.put(url, json=payload, headers=headers)
+        print(f"{mac}: {response.json()}")
 
 def encode_face(bild_pfad):
     print("🔍 Vergleiche erkanntes Gesicht mit Datenbank")
