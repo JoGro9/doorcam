@@ -94,6 +94,7 @@ def mache_fotos_und_erkenne_gesicht():
 
     for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        global now
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         bild_pfad = os.path.join(PHOTO_DIR, f"photo_{timestamp}.jpg")
         camera.take_picture(bild_pfad)
