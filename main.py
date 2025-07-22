@@ -176,8 +176,9 @@ def sende_benachrichtigung(id):
 
     if daten is not None:
         name = daten[0]
+        name_encoded = quote(name)
     try:
-        url = f"http://192.168.178.40:8000/notify/{name}"
+        url = f"http://192.168.178.40:8000/notify/{name_encoded}"
         response = requests.get(url)
         print("Benachrichtigung gesendet:", response.json())
     except Exception as e:
