@@ -119,6 +119,8 @@ def mache_fotos_und_erkenne_gesicht():
             id = match_face(erkanntes_profil)
             print(f"Match gefunden {id}")
             ergebnis = govee_set_color(id)
+            sende_benachrichtigung(id)
+            print("Benachrichtigung gesendet")
             print(ergebnis)
             break
 
