@@ -395,7 +395,7 @@ def notify(name: str):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     message = f"📸 {name} ist um {now} nach Hause gekommen."
 
-    response = requests.post("https://ntfy.sh/doorcam-hebc647hdy67hsn6h4b7d-kalrgdypp",  # 'doorcam' ist dein Topic
+    response = requests.post("https://ntfy.sh/doorcam-hebc647hdy67hsn6h4b7dkalrgdypp",  # 'doorcam' ist dein Topic
                              data=message.encode('utf-8'),
                              headers={"Title": "Türkamera", "Priority": "high"})
 
