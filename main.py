@@ -39,6 +39,7 @@ net = cv2.dnn.readNetFromCaffe(dnn_config_path, dnn_model_path)
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profil_img", StaticFiles(directory="profil_img"), name="profil_img")
+now = None
 
 API_KEY = "b8244bb2-df06-4e86-9aa7-771a0740b547"
 DEVICE_MACS = [
@@ -93,6 +94,7 @@ def mache_fotos_und_erkenne_gesicht():
 
     for _ in range(max_fotos):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         bild_pfad = os.path.join(PHOTO_DIR, f"photo_{timestamp}.jpg")
         camera.take_picture(bild_pfad)
 
@@ -392,7 +394,6 @@ def clear_gallery(auth: bool = Depends(check_password)):
 
 @app.get("/notify/{name}")
 def notify(name: str):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     message = f"📸 {name} ist um {now} nach Hause gekommen."
 
     response = requests.post("https://ntfy.sh/doorcam-hebc647hdy67hsn6h4b7dkalrgdypp",  # 'doorcam' ist dein Topic
