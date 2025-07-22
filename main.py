@@ -398,6 +398,6 @@ def notify(name: str):
 
     response = requests.post("https://ntfy.sh/doorcam-hebc647hdy67hsn6h4b7dkalrgdypp",  # 'doorcam' ist dein Topic
                              data=message.encode('utf-8'),
-                             headers={"Title": "Türkamera", "Priority": "high"})
+                             headers={"Title": "Doorcam", "Priority": "high"})
 
     return {"status": "ok", "message": message}
